@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.team4.auctioncontroller.auction.mapper.AuctionMapper">
+
+    <resultMap id="AuctionResultMap" type="com.team4.auctioncontroller.auction.model.Auction">
+        <id property="id" column="id"/>
+        <result property="title" column="title"/>
+        <result property="description" column="description"/>
+        <result property="startPrice" column="start_price"/>
+        <result property="startAt" column="start_at"/>
+        <result property="endAt" column="end_at"/>
+        <result property="status" column="status"/>
+        <result property="winnerId" column="winner_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="modifiedAt" column="modified_at"/>
+        <result property="deleted" column="deleted"/>
+    </resultMap>
+
+    <select id="findById" resultMap="AuctionResultMap">
+        select * from auction
+        where id = #{id} and deleted = false
+    </select>
+
+    <select id="findAll" resultMap="AuctionResultMap">
+        select * from auction
+        where deleted = false
+    </select>
+    
+    <select id="findAllByStatus" resultMap="AuctionResultMap">
+        select * from auction
+        where deleted = false and status = #{status}
+    </select>
+
+    <insert id="insertAuction" parameterType="com.team4.auctioncontroller.auction.model.Auction"
+            useGeneratedKeys="true" keyProperty="id">
+        insert into auction
+        (
+            title,
+            description,
+            start_price,
+            start_at,
+            end_at,
+            status,
+            created_at,
+            modified_at,
+            deleted
+        )
+        values
+        (
+            #{title},
+            #{description},
+            #{startPrice},
+            #{startAt},
+            #{endAt},
+            #{status},
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP,
+            false
+        )
+    </insert>
+
+    <update id="updateStatus">
+        update auction
+        set status = #{status}, modified_at = CURRENT_TIMESTAMP
+        where id = #{id} and deleted = false
+    </update>
+
+    <update id="updateWinner">
+        update auction
+        set winner_id = #{winnerId}, modified_at = CURRENT_TIMESTAMP
+        where id = #{id} and deleted = false
+    </update>
+
+</mapper>
