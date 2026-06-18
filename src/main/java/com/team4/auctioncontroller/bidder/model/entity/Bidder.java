@@ -35,4 +35,14 @@ public class Bidder {
     @Column(nullable = false)
     private Boolean deleted;
 
+    @PrePersist
+    public void prePersist() {
+        if (registeredAt == null) {
+            registeredAt = LocalDateTime.now();
+        }
+        if (deleted == null) {
+            deleted = false;
+        }
+    }
+
 }

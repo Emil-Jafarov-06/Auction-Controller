@@ -33,4 +33,11 @@ public class Bid {
     @Column(name = "placed_at", nullable = false)
     private LocalDateTime placedAt;
 
+    @PrePersist
+    public void prePersist() {
+        if (placedAt == null) {
+            placedAt = LocalDateTime.now();
+        }
+    }
+
 }

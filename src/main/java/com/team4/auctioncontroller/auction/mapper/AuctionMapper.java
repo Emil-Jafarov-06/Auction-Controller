@@ -16,7 +16,7 @@ public interface AuctionMapper {
 
     List<Auction> findAllByStatus(@Param("status") AuctionStatus status);
 
-    int insertAuction(Auction auction);
+    Auction insertAuction(Auction auction);
 
     int updateStatus(@Param("id") Long id, @Param("status") AuctionStatus status);
 

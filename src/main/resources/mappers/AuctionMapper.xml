@@ -34,8 +34,10 @@
         where deleted = false and status = #{status}
     </select>
 
-    <insert id="insertAuction" parameterType="com.team4.auctioncontroller.auction.model.Auction"
-            useGeneratedKeys="true" keyProperty="id">
+    <select id="insertAuction"
+            parameterType="com.team4.auctioncontroller.auction.model.Auction"
+            resultMap="AuctionResultMap"
+            affectData="true">
         insert into auction
         (
             title,
@@ -60,7 +62,19 @@
             CURRENT_TIMESTAMP,
             false
         )
-    </insert>
+        RETURNING
+        id,
+        title,
+        description,
+        start_price,
+        start_at,
+        end_at,
+        status,
+        winner_id,
+        created_at,
+        modified_at,
+        deleted
+    </select>
 
     <update id="updateStatus">
         update auction

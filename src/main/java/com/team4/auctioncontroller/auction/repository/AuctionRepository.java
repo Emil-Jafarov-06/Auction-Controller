@@ -26,7 +26,7 @@ public class AuctionRepository {
         return auctionMapper.findAllByStatus(status);
     }
 
-    public int save(Auction auction) {
+    public Auction save(Auction auction) {
         return auctionMapper.insertAuction(auction);
     }
 
