@@ -6,9 +6,6 @@ import com.team4.auctioncontroller.auction.model.dto.AuctionResponse;
 import com.team4.auctioncontroller.auction.repository.AuctionRepository;
 import com.team4.auctioncontroller.bid.model.entity.Bid;
 import com.team4.auctioncontroller.bid.repository.BidRepository;
-import com.team4.auctioncontroller.bidder.model.dto.BidderResponse;
-import com.team4.auctioncontroller.bidder.model.entity.Bidder;
-import com.team4.auctioncontroller.bidder.repository.BidderRepository;
 import com.team4.auctioncontroller.enums.AuctionStatus;
 import com.team4.auctioncontroller.exception.BadRequestException;
 import com.team4.auctioncontroller.exception.NotFoundException;
@@ -37,9 +34,6 @@ public class AuctionServiceTest {
 
     @Mock
     private BidRepository bidRepository;
-
-    @Mock
-    private BidderRepository bidderRepository;
 
     // createAuction
     @Test
@@ -396,7 +390,7 @@ public class AuctionServiceTest {
 
     // finishAuction
     @Test
-    void finishAuction_success() {
+    void finishAuction_success_whenAuctionHasBid() {
         Long auctionId = 1L;
         Long bidderId = 10L;
 
@@ -408,6 +402,7 @@ public class AuctionServiceTest {
                 .startAt(LocalDateTime.now().minusDays(2))
                 .endAt(LocalDateTime.now().minusDays(1))
                 .status(AuctionStatus.ACTIVE)
+                .winnerId(null)
                 .deleted(false)
                 .build();
 
@@ -418,33 +413,37 @@ public class AuctionServiceTest {
                 .amount(new BigDecimal("300"))
                 .build();
 
-        Bidder bidder = Bidder.builder()
-                .id(bidderId)
-                .fullName("john doe")
-                .email("john@gmail.com")
-                .pin("1234567")
+        Auction updatedAuction = Auction.builder()
+                .id(auctionId)
+                .title("auction")
+                .description("description")
+                .startPrice(new BigDecimal("100"))
+                .startAt(auction.getStartAt())
+                .endAt(auction.getEndAt())
+                .status(AuctionStatus.COMPLETED)
+                .winnerId(bidderId)
                 .deleted(false)
-                .registeredAt(LocalDateTime.now())
                 .build();
 
-        when(auctionRepository.findById(auctionId)).thenReturn(auction);
-        when(bidRepository.findTopByAuctionIdOrderByAmountDesc(auctionId)).thenReturn(highestBid);
-        when(auctionRepository.updateStatus(auctionId, AuctionStatus.COMPLETED)).thenReturn(1);
-        when(auctionRepository.updateWinner(auctionId, bidderId)).thenReturn(1);
-        when(bidderRepository.findByIdAndDeletedFalse(bidderId)).thenReturn(bidder);
+        when(auctionRepository.findById(auctionId))
+                .thenReturn(auction, updatedAuction);
+        when(bidRepository.findTopByAuctionIdOrderByAmountDesc(auctionId))
+                .thenReturn(highestBid);
+        when(auctionRepository.updateStatus(auctionId, AuctionStatus.COMPLETED))
+                .thenReturn(1);
+        when(auctionRepository.updateWinner(auctionId, bidderId))
+                .thenReturn(1);
 
-        BidderResponse response = auctionService.finishAuction(auctionId);
+        AuctionResponse response = auctionService.finishAuction(auctionId);
 
         assertNotNull(response);
-        assertEquals(bidderId, response.getId());
-        assertEquals("john doe", response.getFullName());
-        assertEquals("john@gmail.com", response.getEmail());
+        assertEquals(AuctionStatus.COMPLETED, response.getStatus());
+        assertEquals(bidderId, response.getWinnerId());
 
-        verify(auctionRepository).findById(auctionId);
+        verify(auctionRepository, times(2)).findById(auctionId);
         verify(bidRepository).findTopByAuctionIdOrderByAmountDesc(auctionId);
         verify(auctionRepository).updateStatus(auctionId, AuctionStatus.COMPLETED);
         verify(auctionRepository).updateWinner(auctionId, bidderId);
-        verify(bidderRepository).findByIdAndDeletedFalse(bidderId);
     }
 
     @Test
@@ -462,7 +461,6 @@ public class AuctionServiceTest {
 
         verify(auctionRepository).findById(auctionId);
         verifyNoInteractions(bidRepository);
-        verifyNoInteractions(bidderRepository);
         verify(auctionRepository, never()).updateStatus(anyLong(), any(AuctionStatus.class));
         verify(auctionRepository, never()).updateWinner(anyLong(), anyLong());
     }
@@ -488,36 +486,45 @@ public class AuctionServiceTest {
 
         verify(auctionRepository).findById(auctionId);
         verifyNoInteractions(bidRepository);
-        verifyNoInteractions(bidderRepository);
         verify(auctionRepository, never()).updateStatus(anyLong(), any(AuctionStatus.class));
         verify(auctionRepository, never()).updateWinner(anyLong(), anyLong());
     }
 
     @Test
-    void finishAuction_fail_whenAuctionHasNoBids() {
+    void finishAuction_success_whenAuctionHasNoBids() {
         Long auctionId = 1L;
 
         Auction auction = Auction.builder()
                 .id(auctionId)
                 .status(AuctionStatus.ACTIVE)
+                .winnerId(null)
                 .deleted(false)
                 .build();
 
-        when(auctionRepository.findById(auctionId)).thenReturn(auction);
-        when(bidRepository.findTopByAuctionIdOrderByAmountDesc(auctionId)).thenReturn(null);
+        Auction updatedAuction = Auction.builder()
+                .id(auctionId)
+                .status(AuctionStatus.NO_BIDDER)
+                .winnerId(null)
+                .deleted(false)
+                .build();
 
-        BadRequestException exception = assertThrows(
-                BadRequestException.class,
-                () -> auctionService.finishAuction(auctionId)
-        );
+        when(auctionRepository.findById(auctionId))
+                .thenReturn(auction, updatedAuction);
+        when(bidRepository.findTopByAuctionIdOrderByAmountDesc(auctionId))
+                .thenReturn(null);
+        when(auctionRepository.updateStatus(auctionId, AuctionStatus.NO_BIDDER))
+                .thenReturn(1);
 
-        assertEquals("Cannot complete auction because it has no bids.", exception.getMessage());
+        AuctionResponse response = auctionService.finishAuction(auctionId);
 
-        verify(auctionRepository).findById(auctionId);
+        assertNotNull(response);
+        assertEquals(AuctionStatus.NO_BIDDER, response.getStatus());
+        assertNull(response.getWinnerId());
+
+        verify(auctionRepository, times(2)).findById(auctionId);
         verify(bidRepository).findTopByAuctionIdOrderByAmountDesc(auctionId);
-        verify(auctionRepository, never()).updateStatus(anyLong(), any(AuctionStatus.class));
+        verify(auctionRepository).updateStatus(auctionId, AuctionStatus.NO_BIDDER);
         verify(auctionRepository, never()).updateWinner(anyLong(), anyLong());
-        verifyNoInteractions(bidderRepository);
     }
 
     @Test
@@ -548,11 +555,10 @@ public class AuctionServiceTest {
                 () -> auctionService.finishAuction(auctionId)
         );
 
-        assertEquals("Auction could not be completed!", exception.getMessage());
+        assertEquals("Auction status could not be updated!", exception.getMessage());
 
         verify(auctionRepository).updateStatus(auctionId, AuctionStatus.COMPLETED);
         verify(auctionRepository).updateWinner(auctionId, bidderId);
-        verifyNoInteractions(bidderRepository);
     }
 
     @Test
@@ -583,11 +589,10 @@ public class AuctionServiceTest {
                 () -> auctionService.finishAuction(auctionId)
         );
 
-        assertEquals("Auction could not be completed!", exception.getMessage());
+        assertEquals("Auction status could not be updated!", exception.getMessage());
 
         verify(auctionRepository).updateStatus(auctionId, AuctionStatus.COMPLETED);
         verify(auctionRepository).updateWinner(auctionId, bidderId);
-        verifyNoInteractions(bidderRepository);
     }
 
     // cancelAuction
