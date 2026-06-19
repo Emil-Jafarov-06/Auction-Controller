@@ -35,7 +35,6 @@ public class AuctionService {
     public AuctionResponse createAuction(AuctionCreateRequest request) {
 
         if(request.getStartAt().isBefore(LocalDateTime.now())
-                || request.getEndAt().isBefore(LocalDateTime.now())
                 || request.getStartAt().isAfter(request.getEndAt()))
         {
             throw new BadRequestException("Start and end times must be configured correctly!");
@@ -89,7 +88,7 @@ public class AuctionService {
             throw new BadRequestException("Auction to activate is not DRAFT!");
         }
         if(!auction.getEndAt().isAfter(LocalDateTime.now())) {
-            throw  new BadRequestException("End time must be in future to activate auction!");
+            throw new BadRequestException("End time must be in future to activate auction!");
         }
         int changed = auctionRepository.updateStatus(id, AuctionStatus.ACTIVE);
         if(changed <= 0) {
@@ -139,7 +138,7 @@ public class AuctionService {
         return auctionRepository.finishExpiredAuctions();
     }
 
-    private AuctionResponse toResponse(Auction auction) {
+    public AuctionResponse toResponse(Auction auction) {
         return AuctionResponse.builder()
                 .id(auction.getId())
                 .title(auction.getTitle())
