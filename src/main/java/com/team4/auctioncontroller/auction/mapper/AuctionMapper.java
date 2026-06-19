@@ -22,4 +22,6 @@ public interface AuctionMapper {
 
     int updateWinner(@Param("id") Long id, @Param("winnerId") Long winnerId);
 
+    int finishExpiredAuctions();
+
 }

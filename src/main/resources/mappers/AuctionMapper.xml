@@ -88,4 +88,22 @@
         where id = #{id} and deleted = false
     </update>
 
+    <update id="finishExpiredAuctions">
+        update auction as ac
+        set status = 'COMPLETED', modified_at = CURRENT_TIMESTAMP,
+        winner_id = (
+            select bid.bidder_id from bid
+            where bid.auction_id = ac.id
+            order by bid.amount desc, bid.placed_at desc
+            limit 1
+        )
+        where ac.status = 'ACTIVE' and
+        ac.end_at &lt;= CURRENT_TIMESTAMP and
+        deleted = false
+        and exists (
+            select 1 from bid
+            where bid.auction_id = ac.id
+        )
+    </update>
+
 </mapper>

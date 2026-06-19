@@ -135,6 +135,10 @@ public class AuctionService {
         }
     }
 
+    public int finishExpiredAuctions() {
+        return auctionRepository.finishExpiredAuctions();
+    }
+
     private AuctionResponse toResponse(Auction auction) {
         return AuctionResponse.builder()
                 .id(auction.getId())

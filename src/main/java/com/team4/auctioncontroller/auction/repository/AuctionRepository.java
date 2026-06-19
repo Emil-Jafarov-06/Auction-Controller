@@ -6,6 +6,7 @@ import com.team4.auctioncontroller.enums.AuctionStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -36,6 +37,10 @@ public class AuctionRepository {
 
     public int updateWinner(Long id, Long winnerId) {
         return auctionMapper.updateWinner(id, winnerId);
+    }
+
+    public int finishExpiredAuctions() {
+        return auctionMapper.finishExpiredAuctions();
     }
 
 }
