@@ -24,4 +24,5 @@ public interface AuctionMapper {
 
     int finishExpiredAuctions();
 
+    int startAuctions();
 }

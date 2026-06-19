@@ -23,5 +23,15 @@ public class AuctionCompletionScheduler {
         log.info("Finished Expired Auctions | Count: {}", completed);
     }
 
+    @Scheduled(
+            initialDelay = 30000,
+            fixedRate = 30000
+    )
+    public void checkCompletion(){
+        log.info("Checking Auctions to start...");
+        int started = auctionService.startAuctions();
+        log.info("Started Auctions | Count: {}", started);
+    }
+
 
 }

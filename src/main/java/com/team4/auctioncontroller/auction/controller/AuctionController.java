@@ -48,8 +48,8 @@ public class AuctionController {
     }
 
     @PatchMapping("{id}/finish")
-    public ResponseEntity<BidderResponse> finishAuction(@PathVariable @Positive Long id) {
-        BidderResponse winner = auctionService.finishAuction(id);
+    public ResponseEntity<AuctionResponse> finishAuction(@PathVariable @Positive Long id) {
+        AuctionResponse winner = auctionService.finishAuction(id);
         return new ResponseEntity<>(winner, HttpStatus.OK);
     }
 

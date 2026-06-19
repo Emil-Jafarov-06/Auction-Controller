@@ -78,7 +78,18 @@
 
     <update id="updateStatus">
         update auction
-        set status = #{status}, modified_at = CURRENT_TIMESTAMP
+        set status = #{status},
+        start_at = case
+            when #{status} = 'ACTIVE' and status is distinct from 'ACTIVE'
+            then CURRENT_TIMESTAMP
+            else start_at
+        end,
+        end_at = case
+            when #{status} in ('COMPLETED', 'NO_BIDDER') and status = 'ACTIVE'
+            then CURRENT_TIMESTAMP
+            else end_at
+        end,
+        modified_at = CURRENT_TIMESTAMP
         where id = #{id} and deleted = false
     </update>
 
@@ -90,20 +101,41 @@
 
     <update id="finishExpiredAuctions">
         update auction as ac
-        set status = 'COMPLETED', modified_at = CURRENT_TIMESTAMP,
-        winner_id = (
-            select bid.bidder_id from bid
-            where bid.auction_id = ac.id
-            order by bid.amount desc, bid.placed_at desc
+        set status = case
+            when exists (
+                select 1 from bid b
+                where b.auction_id = ac.id
+            )
+        then 'COMPLETED'
+        else 'NO_BIDDER'
+        end,
+        winner_id = case
+            when exists (
+                select 1 from bid b
+                where b.auction_id = ac.id
+            )
+        then (
+            select b.bidder_id from bid b
+            where b.auction_id = ac.id
+            order by b.amount desc, b.placed_at desc
             limit 1
         )
-        where ac.status = 'ACTIVE' and
-        ac.end_at &lt;= CURRENT_TIMESTAMP and
-        deleted = false
-        and exists (
-            select 1 from bid
-            where bid.auction_id = ac.id
-        )
+        else null
+        end,
+        modified_at = CURRENT_TIMESTAMP
+        where ac.status = 'ACTIVE'
+        and ac.end_at &lt;= CURRENT_TIMESTAMP
+        and ac.deleted = false
+    </update>
+
+    <update id="startAuctions">
+        update auction as ac
+        set status = 'ACTIVE',
+        modified_at = CURRENT_TIMESTAMP
+        where start_at &lt;= CURRENT_TIMESTAMP
+            and end_at &gt; CURRENT_TIMESTAMP
+            and status = 'DRAFT'
+            and deleted = false
     </update>
 
 </mapper>

@@ -43,4 +43,8 @@ public class AuctionRepository {
         return auctionMapper.finishExpiredAuctions();
     }
 
+    public int startAuctions() {
+        return auctionMapper.startAuctions();
+    }
+
 }

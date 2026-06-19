@@ -6,10 +6,6 @@ import com.team4.auctioncontroller.auction.model.dto.AuctionResponse;
 import com.team4.auctioncontroller.auction.repository.AuctionRepository;
 import com.team4.auctioncontroller.bid.model.entity.Bid;
 import com.team4.auctioncontroller.bid.repository.BidRepository;
-import com.team4.auctioncontroller.bidder.model.dto.BidderResponse;
-import com.team4.auctioncontroller.bidder.model.entity.Bidder;
-import com.team4.auctioncontroller.bidder.repository.BidderRepository;
-import com.team4.auctioncontroller.bidder.service.BidderService;
 import com.team4.auctioncontroller.enums.AuctionStatus;
 import com.team4.auctioncontroller.exception.NotFoundException;
 import com.team4.auctioncontroller.exception.BadRequestException;
@@ -30,12 +26,11 @@ public class AuctionService {
 
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
-    private final BidderRepository bidderRepository;
 
     public AuctionResponse createAuction(AuctionCreateRequest request) {
 
         if(request.getStartAt().isBefore(LocalDateTime.now())
-                || request.getStartAt().isAfter(request.getEndAt()))
+                || !request.getStartAt().isBefore(request.getEndAt()))
         {
             throw new BadRequestException("Start and end times must be configured correctly!");
         }
@@ -97,26 +92,37 @@ public class AuctionService {
     }
 
     @Transactional
-    public BidderResponse finishAuction(Long auctionId) {
+    public AuctionResponse finishAuction(Long auctionId) {
         Auction auction = Optional.ofNullable(auctionRepository.findById(auctionId))
                 .orElseThrow(() -> new NotFoundException("Auction not found!"));
         if(auction.getStatus() != AuctionStatus.ACTIVE){
             throw new BadRequestException("Auction to finish is not ACTIVE!");
         }
 
-        Bid highestBid = Optional.ofNullable(bidRepository.findTopByAuctionIdOrderByAmountDesc(auctionId))
-                .orElseThrow(() -> new BadRequestException("Cannot complete auction because it has no bids."));
+        Bid highestBid = bidRepository.findTopByAuctionIdOrderByAmountDesc(auctionId);
 
-        int statusUpdate =
-                auctionRepository.updateStatus(auctionId, AuctionStatus.COMPLETED);
-        int winnerUpdate =
-                auctionRepository.updateWinner(auctionId, highestBid.getBidderId());
-        if(statusUpdate <= 0 || winnerUpdate <= 0) {
-            throw new BadRequestException("Auction could not be completed!");
+        int statusUpdate, winnerUpdate;
+        if(Objects.isNull(highestBid)) {
+            statusUpdate =
+                    auctionRepository.updateStatus(auctionId, AuctionStatus.NO_BIDDER);
+            if(statusUpdate <= 0){
+                throw new BadRequestException("Auction status could not be updated!");
+            }
+
+            Auction updatedAuction = auctionRepository.findById(auctionId);
+            return toResponse(updatedAuction);
         }
 
-        Bidder bidder = bidderRepository.findByIdAndDeletedFalse(highestBid.getBidderId());
-        return BidderService.toResponse(bidder);
+        statusUpdate =
+                auctionRepository.updateStatus(auctionId, AuctionStatus.COMPLETED);
+        winnerUpdate =
+                auctionRepository.updateWinner(auctionId, highestBid.getBidderId());
+        if(statusUpdate <= 0 || winnerUpdate <= 0) {
+            throw new BadRequestException("Auction status could not be updated!");
+        }
+
+        Auction updatedAuction = auctionRepository.findById(auctionId);
+        return toResponse(updatedAuction);
     }
 
     public void cancelAuction(Long id) {
@@ -138,6 +144,10 @@ public class AuctionService {
         return auctionRepository.finishExpiredAuctions();
     }
 
+    public int startAuctions() {
+        return auctionRepository.startAuctions();
+    }
+
     public AuctionResponse toResponse(Auction auction) {
         return AuctionResponse.builder()
                 .id(auction.getId())
@@ -152,4 +162,5 @@ public class AuctionService {
                 .modifiedAt(auction.getModifiedAt())
                 .build();
     }
+
 }
