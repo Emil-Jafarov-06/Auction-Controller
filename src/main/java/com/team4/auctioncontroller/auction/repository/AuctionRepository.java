@@ -13,6 +13,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AuctionRepository {
 
+  //TODO niye birbasha AuctionMapper istifade etmirik?
+
     private final AuctionMapper auctionMapper;
 
     public Auction findById(Long id) {
