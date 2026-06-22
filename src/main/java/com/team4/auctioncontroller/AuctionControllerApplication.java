@@ -16,5 +16,6 @@ public class AuctionControllerApplication {
 
     //TODO bid separate microservice kimi yazilmaqi (ms-bidding) daha yaxshidir. Auction hemcinin (ms-auction)
     // TODO logging  Scheduler-den basqa yerlerde nezere alinmayib
+   // TODO auction ve bid (bidder) eyni databasin icinde ferqli schemalarda olmalidir.
 
 }
