@@ -77,6 +77,8 @@ public class AuctionController {
     )
     @ApiResponse(responseCode = "200", description = "Auction list returned successfully")
     @GetMapping
+
+    //TODO findAll methodu ucun filterasiya imkanlarini genishlendir. Statusdan elave startAt, endAt , startPrice fieldlerine gore filterasiya imkani olsun (AuctionFilter dto)
     public ResponseEntity<List<AuctionResponse>> findAll(
             @Parameter(description = "Optional auction status filter", example = "ACTIVE")
             @RequestParam(required = false) AuctionStatus status

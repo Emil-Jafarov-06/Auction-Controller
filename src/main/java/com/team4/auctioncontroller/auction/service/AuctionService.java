@@ -63,6 +63,12 @@ public class AuctionService {
     public List<AuctionResponse> getAll(AuctionStatus status) {
         List<Auction> auctions;
         if(Objects.isNull(status)) {
+          //TODO niye birbasha AuctionMapper istifade etmirik?
+          //TODO  findAll ve findAllByStatus methodlarini bir methodda birleshdir ve input kimi AuctionFilter dto yarat. Mybatisde
+          //value-su bosh olmayan fieldleri yoxla ve onlar ucun filterasiya tetbiq et
+
+          //TODO pagination (sort, limit) implement et
+
             auctions = auctionRepository.findAll();
         } else {
             auctions = auctionRepository.findAllByStatus(status);
@@ -92,6 +98,7 @@ public class AuctionService {
     }
 
     @Transactional
+    //TODO finishAuction apinin AuctionResponse (detalli response data) qaytarmaqina ehtiyac yoxdur. Void ve 200 status code OK-dur
     public AuctionResponse finishAuction(Long auctionId) {
         Auction auction = Optional.ofNullable(auctionRepository.findById(auctionId))
                 .orElseThrow(() -> new NotFoundException("Auction not found!"));

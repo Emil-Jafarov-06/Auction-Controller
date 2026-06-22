@@ -43,6 +43,8 @@ public class BidController {
             @ApiResponse(responseCode = "404", description = "Auction or bidder not found", content = @Content)
     })
     @PostMapping
+
+    //TODO bidderId headerde gonderilmelidir
     public ResponseEntity<BidResponse> placeBid(
             @Valid @RequestBody PlaceBidRequest bidRequest
     ) {
