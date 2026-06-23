@@ -11,14 +11,10 @@ import com.project.msauction.exception.NotFoundException;
 import com.project.msauction.exception.NotSavedException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springdoc.core.converters.PageOpenAPIConverter;
-import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -27,7 +23,6 @@ public class AuctionService {
 
     private final AuctionMapper auctionMapper;
     private final BiddingClientForAuction biddingClient;
-    private final PageOpenAPIConverter pageOpenAPIConverter;
 
     public AuctionResponse createAuction(AuctionCreateRequest request) {
         if(request.getStartAt().isBefore(LocalDateTime.now())
@@ -150,12 +145,26 @@ public class AuctionService {
 
     }
 
-    // -
     public int finishExpiredAuctions() {
-        return auctionMapper.finishExpiredAuctions();
+        var expiredActiveAuctionIds = auctionMapper.findExpiredActiveAuctions();
+        if(expiredActiveAuctionIds.isEmpty()) {
+            return 0;
+        }
+
+        List<BidInfoResponse> responses = biddingClient.getBiddingForGivenIds(expiredActiveAuctionIds);
+        List<ExpiredAuctionsUpdate> updates = responses.stream()
+                .map(r -> ExpiredAuctionsUpdate.builder()
+                        .id(r.auctionId())
+                        .status(r.hasBid() ? AuctionStatus.COMPLETED : AuctionStatus.NO_BIDDER)
+                        .bidderId(r.bidderId())
+                        .build()).toList();
+
+        if(updates.isEmpty()) {
+            return 0;
+        }
+        return auctionMapper.finishExpiredAuctions(updates);
     }
 
-    // -
     public int startAuctions() {
         return auctionMapper.startAuctions();
     }

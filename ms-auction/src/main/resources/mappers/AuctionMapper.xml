@@ -47,7 +47,7 @@
         offset #{offset}
     </select>
 
-    <select id="countFiltered" resultMap="long">
+    <select id="countFiltered" resultType="long">
         select count(*) from auction
         <where>
             deleted = false
@@ -132,33 +132,33 @@
         where id = #{id} and deleted = false
     </update>
 
+    <select id="findExpiredActiveAuctions" resultType="long">
+        select id from auction
+        where deleted = false
+            and status = 'ACTIVE'
+            and end_at &lt;= CURRENT_TIMESTAMP
+    </select>
+
     <update id="finishExpiredAuctions">
         update auction as ac
-        set status = case
-            when exists (
-                select 1 from bid b
-                where b.auction_id = ac.id
+        set
+            status = updates.status,
+            winner_id = updates.winner_id,
+            modified_at = CURRENT_TIMESTAMP
+        from (
+        values
+        <foreach collection="updates" item="update" separator=",">
+            (
+            #{update.id}::bigint,
+            #{update.status}::varchar,
+            #{update.winnerId, jdbcType=BIGINT}::bigint
             )
-        then 'COMPLETED'
-        else 'NO_BIDDER'
-        end,
-        winner_id = case
-            when exists (
-                select 1 from bid b
-                where b.auction_id = ac.id
-            )
-        then (
-            select b.bidder_id from bid b
-            where b.auction_id = ac.id
-            order by b.amount desc, b.placed_at desc
-            limit 1
-        )
-        else null
-        end,
-        modified_at = CURRENT_TIMESTAMP
-        where ac.status = 'ACTIVE'
-        and ac.end_at &lt;= CURRENT_TIMESTAMP
+        </foreach>
+        ) as updates(id, status, winner_id)
+        where ac.id = updates.id
         and ac.deleted = false
+        and ac.status = 'ACTIVE'
+        and ac.end_at &lt;= CURRENT_TIMESTAMP
     </update>
 
     <update id="startAuctions">

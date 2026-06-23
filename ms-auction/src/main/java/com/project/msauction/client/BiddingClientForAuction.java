@@ -3,10 +3,13 @@ package com.project.msauction.client;
 import com.project.msauction.client.dto.BidInfoResponse;
 import com.project.msauction.exception.NotFoundException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+
+import java.util.List;
 
 @Component
 public class BiddingClientForAuction {
@@ -28,10 +31,23 @@ public class BiddingClientForAuction {
                     .retrieve()
                     .body(BidInfoResponse.class);
         } catch (HttpClientErrorException.NotFound ex) {
-            throw new NotFoundException("Auction not found with id: " + auctionId);
+            throw new NotFoundException("No bid information for auction with id: " + auctionId);
         } catch (RestClientException ex) {
-            throw new IllegalStateException("Auction service is not available");
+            throw new IllegalStateException("Bidding service is not available");
         }
     }
 
+    public List<BidInfoResponse> getBiddingForGivenIds(List<Long> expiredActiveAuctionIds) {
+        String infoResponseEndPoint = "/internal/biddings/batch";
+        String endPoint = baseUrl + infoResponseEndPoint;
+        try{
+            return restClient.post()
+                    .uri(endPoint)
+                    .body(expiredActiveAuctionIds)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<List<BidInfoResponse>>(){});
+        } catch (RestClientException ex) {
+            throw new IllegalStateException("Bidding service is not available");
+        }
+    }
 }

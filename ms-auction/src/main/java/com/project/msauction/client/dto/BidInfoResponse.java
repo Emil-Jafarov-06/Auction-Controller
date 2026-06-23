@@ -1,3 +1,3 @@
 package com.project.msauction.client.dto;
 
-public record BidInfoResponse(boolean hasBid, Long bidderId) {}
+public record BidInfoResponse(Long auctionId, boolean hasBid, Long bidderId) {}

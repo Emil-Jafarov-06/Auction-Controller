@@ -15,9 +15,8 @@ import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +37,7 @@ public class BidService {
             throw new BadRequestException("Auction is not active.");
         }
 
-        Bid highestBid = bidRepository.findTopByAuctionIdOrderByAmountDesc(auctionId);
+        Bid highestBid = bidRepository.findTopByAuctionIdOrderByPlacedAtDesc(auctionId);
         if (highestBid == null) {
             if (bidRequest.getAmount().compareTo(auction.startPrice()) <= 0) {
                 throw new BadRequestException("First bid amount must be greater than start price!");
@@ -63,7 +62,7 @@ public class BidService {
     }
 
     public List<BidResponse> getAllBidsForAuction(@Positive Long id) {
-        List<Bid> bids = bidRepository.findBidsByAuctionIdOrderByAmountDesc(id);
+        List<Bid> bids = bidRepository.findBidsByAuctionIdOrderByPlacedAtDesc(id);
         if(bids.isEmpty()){
             return new ArrayList<>();
         }
@@ -73,24 +72,54 @@ public class BidService {
     }
 
     public BidResponse getHighestBidForAuction(@Positive Long auctionId) {
-        Bid highestBid = bidRepository.findTopByAuctionIdOrderByAmountDesc(auctionId);
+        Bid highestBid = bidRepository.findTopByAuctionIdOrderByPlacedAtDesc(auctionId);
         if(highestBid == null){
             throw new NotFoundException("No bids were placed for this auction!");
         }
         return toResponse(highestBid);
     }
 
-    public BidInfoResponse getBiddingInfo(Long id) {
-        Bid bid = bidRepository.findTopByAuctionIdOrderByAmountDesc(id);
+    public BidInfoResponse getBiddingInfo(Long auctionId) {
+        Bid bid = bidRepository.findTopByAuctionIdOrderByPlacedAtDesc(auctionId);
         if(bid == null){
             return BidInfoResponse.builder()
+                    .auctionId(auctionId)
                     .hasBid(false)
                     .bidderId(null).build();
         } else {
             return BidInfoResponse.builder()
+                    .auctionId(auctionId)
                     .hasBid(true)
                     .bidderId(bid.getBidderId()).build();
         }
+    }
+
+    public List<BidInfoResponse> getBiddingInformationForAuctions(List<Long> auctionIds) {
+        if(Objects.isNull(auctionIds) || auctionIds.isEmpty()){
+            return new ArrayList<>();
+        }
+
+        List<Bid> bids = bidRepository.findHighestBidsForAuctions(auctionIds);
+
+        Map<Long, Bid> bidsByAuctionId = bids.stream()
+                        .collect(Collectors.toMap(Bid::getAuctionId, b -> b));
+
+        return auctionIds.stream()
+                .map((auctionId) -> {
+                    Bid bid = bidsByAuctionId.get(auctionId);
+
+                    if(bid == null){
+                        return BidInfoResponse.builder()
+                                .auctionId(auctionId)
+                                .hasBid(false)
+                                .bidderId(null).build();
+                    } else  {
+                        return BidInfoResponse.builder()
+                                .auctionId(auctionId)
+                                .hasBid(true)
+                                .bidderId(bid.getBidderId()).build();
+                    }
+                }).toList();
     }
 
     public BidResponse toResponse(Bid bid) {
@@ -101,5 +130,4 @@ public class BidService {
                 .amount(bid.getAmount())
                 .placedAt(bid.getPlacedAt()).build();
     }
-
 }
