@@ -1,0 +1,27 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: ms-bidding
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/auction_db}
+    username: ${DB_USERNAME:auction_user}
+    password: ${DB_PASSWORD:auction_pass}
+    driver-class-name: org.postgresql.Driver
+
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.yaml
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: bidding_schema
+    show-sql: true
+
+services:
+  auction:
+    base-url: http://localhost:8081

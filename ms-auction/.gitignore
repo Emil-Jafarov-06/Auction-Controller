@@ -35,13 +35,3 @@ out/
 
 ### VS Code ###
 .vscode/
-
-.gradle/
-**/build/
-.idea/
-out/
-target/
-.env
-*.log
-.DS_Store
-Thumbs.db

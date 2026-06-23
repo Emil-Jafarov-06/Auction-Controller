@@ -1,0 +1,49 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-bid-table
+      author: emil
+      changes:
+        - createTable:
+            tableName: bid
+            schemaName: bidding_schema
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_bid
+
+              - column:
+                  name: auction_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: bidder_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: amount
+                  type: NUMERIC(15, 2)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: placed_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableSchemaName: bidding_schema
+            baseTableName: bid
+            baseColumnNames: bidder_id
+            referencedTableSchemaName: bidding_schema
+            referencedTableName: bidder
+            referencedColumnNames: id
+            constraintName: fk_bid_bidder

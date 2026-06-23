@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - changeSet:
+      author: emil
+      id: 001-create-auction-schema
+      changes:
+        - sql:
+            sql: create schema if not exists auction_schema;
