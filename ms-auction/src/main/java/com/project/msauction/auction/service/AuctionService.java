@@ -1,10 +1,8 @@
 package com.project.msauction.auction.service;
 
+import com.project.msauction.auction.mapper.AuctionMapper;
 import com.project.msauction.auction.model.Auction;
-import com.project.msauction.auction.model.dto.AuctionCreateRequest;
-import com.project.msauction.auction.model.dto.AuctionInfoResponse;
-import com.project.msauction.auction.model.dto.AuctionResponse;
-import com.project.msauction.auction.repository.AuctionRepository;
+import com.project.msauction.auction.model.dto.*;
 import com.project.msauction.client.BiddingClientForAuction;
 import com.project.msauction.client.dto.BidInfoResponse;
 import com.project.msauction.enums.AuctionStatus;
@@ -13,6 +11,8 @@ import com.project.msauction.exception.NotFoundException;
 import com.project.msauction.exception.NotSavedException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.converters.PageOpenAPIConverter;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -25,8 +25,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AuctionService {
 
-    private final AuctionRepository auctionRepository;
+    private final AuctionMapper auctionMapper;
     private final BiddingClientForAuction biddingClient;
+    private final PageOpenAPIConverter pageOpenAPIConverter;
 
     public AuctionResponse createAuction(AuctionCreateRequest request) {
         if(request.getStartAt().isBefore(LocalDateTime.now())
@@ -45,7 +46,7 @@ public class AuctionService {
                 .deleted(false)
                 .build();
 
-        Auction savedAuction = auctionRepository.save(auction);
+        Auction savedAuction = auctionMapper.insertAuction(auction);
         if(savedAuction == null) {
             throw new NotSavedException("Auction could not be saved!");
         }
@@ -54,37 +55,33 @@ public class AuctionService {
     }
 
     public AuctionResponse getById(Long id) {
-        Auction auction = Optional.ofNullable(auctionRepository.findById(id))
+        Auction auction = Optional.ofNullable(auctionMapper.findById(id))
                 .orElseThrow(() -> new NotFoundException("Auction not found!"));
 
         return toResponse(auction);
     }
 
-    // -
-    public List<AuctionResponse> getAll(AuctionStatus status) {
-        List<Auction> auctions;
-        if(Objects.isNull(status)) {
-          //TODO niye birbasha AuctionMapper istifade etmirik?
-          //TODO  findAll ve findAllByStatus methodlarini bir methodda birleshdir ve input kimi AuctionFilter dto yarat. Mybatisde
-          //value-su bosh olmayan fieldleri yoxla ve onlar ucun filterasiya tetbiq et
-
-          //TODO pagination (sort, limit) implement et
-
-            auctions = auctionRepository.findAll();
-        } else {
-            auctions = auctionRepository.findAllByStatus(status);
+    public PageResponse<AuctionResponse> getAll(AuctionFilter filter, int pageSize, int pageNumber) {
+        if(pageSize <= 0){
+            throw new BadRequestException("Page size must be greater than zero!");
         }
-
-        if(auctions.isEmpty()) {
-            return new ArrayList<>();
+        if (pageNumber <= 0) {
+            throw new BadRequestException("Page number must be greater than zero!");
         }
-        return auctions.stream()
-                .map(this::toResponse)
-                .toList();
+        List<Auction> auctions = auctionMapper.findFiltered(filter, pageSize, (pageNumber-1) * pageSize);
+        long totalCount = auctionMapper.countFiltered(filter);
+        int totalPages = (int) Math.ceil((double) totalCount / pageSize);
+
+        List<AuctionResponse> auctionResponses =
+                auctions.stream()
+                        .map(this::toResponse)
+                        .toList();
+
+        return new PageResponse<>(auctionResponses, pageNumber, pageSize, totalCount, totalPages);
     }
 
     public void activateAuction(Long id) {
-        Auction auction = Optional.ofNullable(auctionRepository.findById(id))
+        Auction auction = Optional.ofNullable(auctionMapper.findById(id))
                 .orElseThrow(() -> new NotFoundException("Auction not found!"));
         if(auction.getStatus() != AuctionStatus.DRAFT){
             throw new BadRequestException("Auction to activate is not DRAFT!");
@@ -92,50 +89,43 @@ public class AuctionService {
         if(!auction.getEndAt().isAfter(LocalDateTime.now())) {
             throw new BadRequestException("End time must be in future to activate auction!");
         }
-        int changed = auctionRepository.updateStatus(id, AuctionStatus.ACTIVE);
+        int changed = auctionMapper.updateStatus(id, AuctionStatus.ACTIVE);
         if(changed <= 0) {
             throw new BadRequestException("Auction could not be activated!");
         }
     }
 
-    // -
     @Transactional
-    //TODO finishAuction apinin AuctionResponse (detalli response data) qaytarmaqina ehtiyac yoxdur. Void ve 200 status code OK-dur
-    public AuctionResponse finishAuction(Long auctionId) {
-        Auction auction = Optional.ofNullable(auctionRepository.findById(auctionId))
+    public void finishAuction(Long auctionId) {
+        Auction auction = Optional.ofNullable(auctionMapper.findById(auctionId))
                 .orElseThrow(() -> new NotFoundException("Auction not found!"));
         if(auction.getStatus() != AuctionStatus.ACTIVE){
             throw new BadRequestException("Auction to finish is not ACTIVE!");
         }
 
-        BidInfoResponse highestBid = biddingClient.findHighestBidInfo(auctionId);
+        BidInfoResponse highestBidInfo = biddingClient.findHighestBidInfo(auctionId);
 
         int statusUpdate, winnerUpdate;
-        if(Objects.isNull(highestBid)) {
+        if(!highestBidInfo.hasBid()) {
             statusUpdate =
-                    auctionRepository.updateStatus(auctionId, AuctionStatus.NO_BIDDER);
+                    auctionMapper.updateStatus(auctionId, AuctionStatus.NO_BIDDER);
             if(statusUpdate <= 0){
                 throw new BadRequestException("Auction status could not be updated!");
             }
-
-            Auction updatedAuction = auctionRepository.findById(auctionId);
-            return toResponse(updatedAuction);
+            return;
         }
 
         statusUpdate =
-                auctionRepository.updateStatus(auctionId, AuctionStatus.COMPLETED);
+                auctionMapper.updateStatus(auctionId, AuctionStatus.COMPLETED);
         winnerUpdate =
-                auctionRepository.updateWinner(auctionId, highestBid.bidderId());
+                auctionMapper.updateWinner(auctionId, highestBidInfo.bidderId());
         if(statusUpdate <= 0 || winnerUpdate <= 0) {
             throw new BadRequestException("Auction status could not be updated!");
         }
-
-        Auction updatedAuction = auctionRepository.findById(auctionId);
-        return toResponse(updatedAuction);
     }
 
     public void cancelAuction(Long id) {
-        Auction auction = Optional.ofNullable(auctionRepository.findById(id))
+        Auction auction = Optional.ofNullable(auctionMapper.findById(id))
                 .orElseThrow(() -> new NotFoundException("Auction not found!"));
         if(auction.getStatus() != AuctionStatus.DRAFT &&
                 auction.getStatus() != AuctionStatus.ACTIVE) {
@@ -143,14 +133,14 @@ public class AuctionService {
         }
 
         int statusChange =
-                auctionRepository.updateStatus(auction.getId(), AuctionStatus.CANCELLED);
+                auctionMapper.updateStatus(auction.getId(), AuctionStatus.CANCELLED);
         if(statusChange <= 0) {
             throw new BadRequestException("Auction could not be cancelled!");
         }
     }
 
     public AuctionInfoResponse getInfoResponse(Long id) {
-        Auction auction = Optional.ofNullable(auctionRepository.findById(id))
+        Auction auction = Optional.ofNullable(auctionMapper.findById(id))
                 .orElseThrow(() -> new NotFoundException("Auction not found!"));
 
         return AuctionInfoResponse.builder()
@@ -162,12 +152,12 @@ public class AuctionService {
 
     // -
     public int finishExpiredAuctions() {
-        return auctionRepository.finishExpiredAuctions();
+        return auctionMapper.finishExpiredAuctions();
     }
 
     // -
     public int startAuctions() {
-        return auctionRepository.startAuctions();
+        return auctionMapper.startAuctions();
     }
 
     public AuctionResponse toResponse(Auction auction) {

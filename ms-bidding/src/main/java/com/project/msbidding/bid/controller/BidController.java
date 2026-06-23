@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -31,7 +32,7 @@ public class BidController {
 
     @Operation(
             summary = "Place bid",
-            description = "Places a bid for an active auction."
+            description = "Places a bid for an active auction. The bidder id is passed through the Bidder-Id request header."
     )
     @ApiResponses(value = {
             @ApiResponse(
@@ -43,12 +44,13 @@ public class BidController {
             @ApiResponse(responseCode = "404", description = "Auction or bidder not found", content = @Content)
     })
     @PostMapping
-
-    //TODO bidderId headerde gonderilmelidir
     public ResponseEntity<BidResponse> placeBid(
-            @Valid @RequestBody PlaceBidRequest bidRequest
+            @Valid @RequestBody PlaceBidRequest bidRequest,
+
+            @Parameter(description = "The id of the bidder", required = true)
+            @RequestHeader("Bidder-Id") @NotNull @Positive Long bidderId
     ) {
-        BidResponse bidResponse = bidService.placeBid(bidRequest);
+        BidResponse bidResponse = bidService.placeBid(bidRequest, bidderId);
         return new ResponseEntity<>(bidResponse, HttpStatus.CREATED);
     }
 

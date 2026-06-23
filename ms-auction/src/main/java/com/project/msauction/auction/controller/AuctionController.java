@@ -2,9 +2,10 @@ package com.project.msauction.auction.controller;
 
 
 import com.project.msauction.auction.model.dto.AuctionCreateRequest;
+import com.project.msauction.auction.model.dto.AuctionFilter;
 import com.project.msauction.auction.model.dto.AuctionResponse;
+import com.project.msauction.auction.model.dto.PageResponse;
 import com.project.msauction.auction.service.AuctionService;
-import com.project.msauction.enums.AuctionStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,6 +16,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -73,18 +75,18 @@ public class AuctionController {
     }
 
     @Operation(
-            summary = "Get all auctions",
-            description = "Returns all auctions. You can optionally filter by auction status."
+            summary = "Get auctions",
+            description = "Returns paginated auctions. You can optionally filter by status, start time, end time, and minimum start price."
     )
     @ApiResponse(responseCode = "200", description = "Auction list returned successfully")
     @GetMapping
-
-    //TODO findAll methodu ucun filterasiya imkanlarini genishlendir. Statusdan elave startAt, endAt , startPrice fieldlerine gore filterasiya imkani olsun (AuctionFilter dto)
-    public ResponseEntity<List<AuctionResponse>> findAll(
-            @Parameter(description = "Optional auction status filter", example = "ACTIVE")
-            @RequestParam(required = false) AuctionStatus status
+    public ResponseEntity<PageResponse<AuctionResponse>> findAll(
+            @Parameter(description = "Auction filter -> can choose status, start and end times, and minimum start price")
+            @ParameterObject @ModelAttribute AuctionFilter filter,
+            @RequestParam(required = false, defaultValue = "10") int pageSize,
+            @RequestParam(required = false, defaultValue = "1") int pageNumber
     ) {
-        List<AuctionResponse> auctionResponseList = auctionService.getAll(status);
+        PageResponse<AuctionResponse> auctionResponseList = auctionService.getAll(filter, pageSize, pageNumber);
         return new ResponseEntity<>(auctionResponseList, HttpStatus.OK);
     }
 
@@ -114,18 +116,18 @@ public class AuctionController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Auction finished successfully",
-                    content = @Content(schema = @Schema(implementation = AuctionResponse.class))
+                    content = @Content(schema = @Schema(implementation = Void.class))
             ),
             @ApiResponse(responseCode = "400", description = "Auction cannot be finished", content = @Content),
             @ApiResponse(responseCode = "404", description = "Auction not found", content = @Content)
     })
     @PatchMapping("/{id}/finish")
-    public ResponseEntity<AuctionResponse> finishAuction(
+    public ResponseEntity<Void> finishAuction(
             @Parameter(description = "Auction ID", example = "1")
             @PathVariable @Positive Long id
     ) {
-        AuctionResponse auctionResponse = auctionService.finishAuction(id);
-        return new ResponseEntity<>(auctionResponse, HttpStatus.OK);
+        auctionService.finishAuction(id);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
     @Operation(

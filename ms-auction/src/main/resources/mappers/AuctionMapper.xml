@@ -3,9 +3,9 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.team4.auctioncontroller.auction.mapper.AuctionMapper">
+<mapper namespace="com.project.msauction.auction.mapper.AuctionMapper">
 
-    <resultMap id="AuctionResultMap" type="com.team4.auctioncontroller.auction.model.Auction">
+    <resultMap id="AuctionResultMap" type="com.project.msauction.auction.model.Auction">
         <id property="id" column="id"/>
         <result property="title" column="title"/>
         <result property="description" column="description"/>
@@ -24,18 +24,51 @@
         where id = #{id} and deleted = false
     </select>
 
-    <select id="findAll" resultMap="AuctionResultMap">
+    <select id="findFiltered" resultMap="AuctionResultMap">
         select * from auction
-        where deleted = false
+        <where>
+            deleted = false
+
+            <if test="filter.status != null">
+                and status = #{filter.status}
+            </if>
+            <if test="filter.startTime != null">
+                and start_at &gt;= #{filter.startTime}
+            </if>
+            <if test="filter.endTime != null">
+                and end_at &lt;= #{filter.endTime}
+            </if>
+            <if test="filter.startPrice != null">
+                and start_price &gt;= #{filter.startPrice}
+            </if>
+        </where>
+        order by created_at desc
+        limit #{limit}
+        offset #{offset}
     </select>
-    
-    <select id="findAllByStatus" resultMap="AuctionResultMap">
-        select * from auction
-        where deleted = false and status = #{status}
+
+    <select id="countFiltered" resultMap="long">
+        select count(*) from auction
+        <where>
+            deleted = false
+
+            <if test="filter.status != null">
+                and status = #{filter.status}
+            </if>
+            <if test="filter.startTime != null">
+                and start_at &gt;= #{filter.startTime}
+            </if>
+            <if test="filter.endTime != null">
+                and end_at &lt;= #{filter.endTime}
+            </if>
+            <if test="filter.startPrice != null">
+                and start_price &gt;= #{filter.startPrice}
+            </if>
+        </where>
     </select>
 
     <select id="insertAuction"
-            parameterType="com.team4.auctioncontroller.auction.model.Auction"
+            parameterType="com.project.msauction.auction.model.Auction"
             resultMap="AuctionResultMap"
             affectData="true">
         insert into auction

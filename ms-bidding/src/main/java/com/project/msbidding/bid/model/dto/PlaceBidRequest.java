@@ -21,10 +21,6 @@ public class PlaceBidRequest {
 
     @NotNull
     @Positive
-    private Long bidderId;
-
-    @NotNull
-    @Positive
     private BigDecimal amount;
 
 }

@@ -27,9 +27,8 @@ public class BidService {
     private final BidderRepository bidderRepository;
     private final BidRepository bidRepository;
 
-    public BidResponse placeBid(PlaceBidRequest bidRequest) {
+    public BidResponse placeBid(PlaceBidRequest bidRequest, Long bidderId) {
         Long auctionId = bidRequest.getAuctionId();
-        Long bidderId = bidRequest.getBidderId();
 
         AuctionInfoResponse auction = auctionClient.getAuctionInfoResponse(auctionId);
         Bidder bidder = Optional.ofNullable(bidderRepository.findByIdAndDeletedFalse(bidderId))
@@ -55,7 +54,7 @@ public class BidService {
 
         Bid bid = Bid.builder()
                 .auctionId(bidRequest.getAuctionId())
-                .bidderId(bidRequest.getBidderId())
+                .bidderId(bidderId)
                 .amount(bidRequest.getAmount())
                 .build();
 

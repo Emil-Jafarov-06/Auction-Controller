@@ -2,9 +2,11 @@ package com.project.msauction.auction.mapper;
 
 
 import com.project.msauction.auction.model.Auction;
+import com.project.msauction.auction.model.dto.AuctionFilter;
 import com.project.msauction.enums.AuctionStatus;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -12,10 +14,6 @@ import java.util.List;
 public interface AuctionMapper {
 
     Auction findById(@Param("id") Long id);
-
-    List<Auction> findAll();
-
-    List<Auction> findAllByStatus(@Param("status") AuctionStatus status);
 
     Auction insertAuction(Auction auction);
 
@@ -26,4 +24,9 @@ public interface AuctionMapper {
     int finishExpiredAuctions();
 
     int startAuctions();
+
+    List<Auction> findFiltered(@Param("filter") AuctionFilter filter, @Param("limit") int limit, @Param("offset") int offset);
+
+    long countFiltered(@Param("filter") AuctionFilter filter);
+
 }
