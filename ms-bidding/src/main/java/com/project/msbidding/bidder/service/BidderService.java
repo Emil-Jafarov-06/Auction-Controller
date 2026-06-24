@@ -7,10 +7,12 @@ import com.project.msbidding.bidder.repository.BidderRepository;
 import com.project.msbidding.exception.ConflictException;
 import com.project.msbidding.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BidderService {
@@ -35,6 +37,9 @@ public class BidderService {
                 .deleted(false).build();
 
         Bidder savedBidder = bidderRepository.save(bidder);
+
+        log.info("Bidder registered successfully: bidderId={}", savedBidder.getId());
+
         return toResponse(savedBidder);
     }
 

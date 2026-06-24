@@ -15,11 +15,13 @@ import com.project.msbidding.exception.NotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BidService {
@@ -48,8 +50,14 @@ public class BidService {
         int updates = auctionBidStateRepository
                 .tryAcceptBid(auctionId, bidderId, bidRequest.getAmount());
 
-        if (updates <= 0)
+        if (updates <= 0){
+            log.warn("Bid rejected: auctionId : {}, bidderId : {}, amount : {}",
+                    auctionId,
+                    bidderId,
+                    bidRequest.getAmount());
+
             throw new BadRequestException("Rejected! Amount must be greater than current highest bid and bidder cannot bid consecutively.");
+        }
 
         Bid bid = Bid.builder()
                 .auctionId(bidRequest.getAuctionId())
@@ -58,6 +66,13 @@ public class BidService {
                 .build();
 
         Bid savedBid = bidRepository.save(bid);
+
+        log.info("Bid placed successfully: bidId = {}, auctionId = {}, bidderId = {}, amount = {}",
+                savedBid.getId(),
+                savedBid.getAuctionId(),
+                savedBid.getBidderId(),
+                savedBid.getAmount());
+
         return toResponse(savedBid);
     }
 
@@ -81,12 +96,22 @@ public class BidService {
 
     public BidInfoResponse getBiddingInfo(Long auctionId) {
         Bid bid = bidRepository.findTopByAuctionIdOrderByPlacedAtDesc(auctionId);
+
         if(bid == null){
+            log.info("Bidding info resolved: auctionId = {}, hasBid = {}",
+                    auctionId,
+                    false);
+
             return BidInfoResponse.builder()
                     .auctionId(auctionId)
                     .hasBid(false)
                     .bidderId(null).build();
         } else {
+            log.info("Bidding info resolved: auctionId = {}, hasBid = {}, winnerId = {}",
+                    auctionId,
+                    true,
+                    bid.getBidderId());
+
             return BidInfoResponse.builder()
                     .auctionId(auctionId)
                     .hasBid(true)
@@ -99,7 +124,14 @@ public class BidService {
             return new ArrayList<>();
         }
 
+        log.info("Highest bid information requested for {} auctions",
+                auctionIds.size());
+
         List<Bid> bids = bidRepository.findHighestBidsForAuctions(auctionIds);
+
+        log.info("Highest bid information fetched for {} auctions out of {} auctions.",
+                bids.size(),
+                auctionIds.size());
 
         Map<Long, Bid> bidsByAuctionId = bids.stream()
                         .collect(Collectors.toMap(Bid::getAuctionId, b -> b));

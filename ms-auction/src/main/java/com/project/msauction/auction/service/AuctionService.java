@@ -11,12 +11,14 @@ import com.project.msauction.exception.NotFoundException;
 import com.project.msauction.exception.NotSavedException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuctionService {
@@ -45,6 +47,12 @@ public class AuctionService {
         if(savedAuction == null) {
             throw new NotSavedException("Auction could not be saved!");
         }
+
+        log.info("Auction created: auctionId={}, startAt={}, endAt={}, startPrice={}",
+                savedAuction.getId(),
+                savedAuction.getStartAt(),
+                savedAuction.getEndAt(),
+                savedAuction.getStartPrice());
 
         return toResponse(savedAuction);
     }
@@ -88,6 +96,8 @@ public class AuctionService {
         if(changed <= 0) {
             throw new BadRequestException("Auction could not be activated!");
         }
+
+        log.info("Auction activated manually: auctionId = {}", id);
     }
 
     @Transactional
@@ -107,6 +117,8 @@ public class AuctionService {
             if(statusUpdate <= 0){
                 throw new BadRequestException("Auction status could not be updated!");
             }
+
+            log.info("Auction finished manually as NO_BIDDER: auctionId = {}", auctionId);
             return;
         }
 
@@ -117,6 +129,8 @@ public class AuctionService {
         if(statusUpdate <= 0 || winnerUpdate <= 0) {
             throw new BadRequestException("Auction status could not be updated!");
         }
+
+        log.info("Auction finished manually as COMPLETED: auctionId = {}, winnerId = {}", auctionId, highestBidInfo.bidderId());
     }
 
     public void cancelAuction(Long id) {
@@ -132,6 +146,8 @@ public class AuctionService {
         if(statusChange <= 0) {
             throw new BadRequestException("Auction could not be cancelled!");
         }
+
+        log.info("Auction cancelled: auctionId = {}", id);
     }
 
     public AuctionInfoResponse getInfoResponse(Long id) {
@@ -148,6 +164,7 @@ public class AuctionService {
     public int finishExpiredAuctions() {
         var expiredActiveAuctionIds = auctionMapper.findExpiredActiveAuctions();
         if(expiredActiveAuctionIds.isEmpty()) {
+            log.info("No expired active auctions found");
             return 0;
         }
 
@@ -160,13 +177,36 @@ public class AuctionService {
                         .build()).toList();
 
         if(updates.isEmpty()) {
+            log.warn("No updates were prepared for expired auctions");
             return 0;
         }
-        return auctionMapper.finishExpiredAuctions(updates);
+
+        long completedCount = updates.stream()
+                .filter(update -> update.status() == AuctionStatus.COMPLETED)
+                .count();
+
+        long noBidderCount = updates.stream()
+                .filter(update -> update.status() == AuctionStatus.NO_BIDDER)
+                .count();
+
+        log.info("Prepared expired auction updates: total={}, completed={}, noBidder={}",
+                updates.size(),
+                completedCount,
+                noBidderCount);
+
+        int updateCount = auctionMapper.finishExpiredAuctions(updates);
+
+        log.info("Finished expired auction updates: updateCount = {}", updateCount);
+
+        return updateCount;
     }
 
     public int startAuctions() {
-        return auctionMapper.startAuctions();
+        int activatedCount = auctionMapper.startAuctions();
+
+        log.info("Scheduled auction activation completed: activatedCount={}", activatedCount);
+
+        return activatedCount;
     }
 
     public AuctionResponse toResponse(Auction auction) {
