@@ -4,6 +4,7 @@ import com.project.msbidding.bid.model.dto.BidInfoResponse;
 import com.project.msbidding.bid.model.dto.BidResponse;
 import com.project.msbidding.bid.model.dto.PlaceBidRequest;
 import com.project.msbidding.bid.model.entity.Bid;
+import com.project.msbidding.bid.repository.AuctionBidStateRepository;
 import com.project.msbidding.bid.repository.BidRepository;
 import com.project.msbidding.bidder.model.entity.Bidder;
 import com.project.msbidding.bidder.repository.BidderRepository;
@@ -11,6 +12,7 @@ import com.project.msbidding.client.AuctionClientForBidding;
 import com.project.msbidding.client.dto.AuctionInfoResponse;
 import com.project.msbidding.exception.BadRequestException;
 import com.project.msbidding.exception.NotFoundException;
+import jakarta.transaction.Transactional;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,7 +27,9 @@ public class BidService {
     private final AuctionClientForBidding auctionClient;
     private final BidderRepository bidderRepository;
     private final BidRepository bidRepository;
+    private final AuctionBidStateRepository auctionBidStateRepository;
 
+    @Transactional
     public BidResponse placeBid(PlaceBidRequest bidRequest, Long bidderId) {
         Long auctionId = bidRequest.getAuctionId();
 
@@ -37,19 +41,15 @@ public class BidService {
             throw new BadRequestException("Auction is not active.");
         }
 
-        Bid highestBid = bidRepository.findTopByAuctionIdOrderByPlacedAtDesc(auctionId);
-        if (highestBid == null) {
-            if (bidRequest.getAmount().compareTo(auction.startPrice()) <= 0) {
-                throw new BadRequestException("First bid amount must be greater than start price!");
-            }
-        } else {
-            if (bidRequest.getAmount().compareTo(highestBid.getAmount()) <= 0) {
-                throw new BadRequestException("A new bid amount must be greater than highest bid!");
-            }
-            if (highestBid.getBidderId().equals(bidderId)) {
-                throw new BadRequestException("A bidder cannot place two consecutive bids on the same auction.");
-            }
+        if (bidRequest.getAmount().compareTo(auction.startPrice()) <= 0) {
+            throw new BadRequestException("First bid amount must be greater than start price!");
         }
+
+        int updates = auctionBidStateRepository
+                .tryAcceptBid(auctionId, bidderId, bidRequest.getAmount());
+
+        if (updates <= 0)
+            throw new BadRequestException("Rejected! Amount must be greater than current highest bid and bidder cannot bid consecutively.");
 
         Bid bid = Bid.builder()
                 .auctionId(bidRequest.getAuctionId())
