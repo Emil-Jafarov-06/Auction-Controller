@@ -42,11 +42,10 @@ public class LoggingAspect {
     public void logAfterThrowing(JoinPoint joinPoint, Throwable e) {
         Long start = startTime.get();
         Long duration = start != null ? System.currentTimeMillis() - start : 0;
-        log.info("Failed: {} after {} ms. Exception : {}",
+        log.error("Failed: {} after {} ms. Exception : {}",
                 joinPoint.getSignature().toShortString(),
                 duration,
-                e.getMessage(),
-                e);
+                e.getMessage());
 
         startTime.remove();
     }

@@ -53,8 +53,7 @@ public class LoggingAspect {
         log.error("Failed: {} after {} ms. Exception: {}",
                 joinPoint.getSignature().toShortString(),
                 duration,
-                e.getMessage(),
-                e);
+                e.getMessage());
 
         startTime.remove();
     }

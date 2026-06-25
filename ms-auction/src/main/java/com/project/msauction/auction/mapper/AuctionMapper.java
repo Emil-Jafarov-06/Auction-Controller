@@ -4,7 +4,6 @@ package com.project.msauction.auction.mapper;
 import com.project.msauction.auction.model.Auction;
 import com.project.msauction.auction.model.dto.AuctionFilter;
 import com.project.msauction.auction.model.dto.ExpiredAuctionsUpdate;
-import com.project.msauction.client.dto.BidInfoResponse;
 import com.project.msauction.enums.AuctionStatus;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;

@@ -23,8 +23,10 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
                        partition by b.auction_id
                        order by b.amount desc, b.placed_at desc
                    ) as rn
-            from bid b
+            from bidding_schema.bid b
+            inner join bidding_schema.bidder br on br.id = b.bidder_id
             where b.auction_id in (:auctionIds)
+              and br.deleted = false
         ) ranked
         where ranked.rn = 1
         """, nativeQuery = true)

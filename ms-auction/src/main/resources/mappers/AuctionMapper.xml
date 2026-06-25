@@ -151,7 +151,7 @@
             (
             #{update.id}::bigint,
             #{update.status}::varchar,
-            #{update.winnerId, jdbcType=BIGINT}::bigint
+            #{update.bidderId, jdbcType=BIGINT}::bigint
             )
         </foreach>
         ) as updates(id, status, winner_id)
