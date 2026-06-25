@@ -1,0 +1,37 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auction-service
+              uri: http://localhost:8081
+              predicates:
+                - Path=/api/auctions/**
+
+            - id: bidding-service
+              uri: http://localhost:8082
+              predicates:
+                - Path=/api/bids/**
+
+            - id: auth-service
+              uri: http://localhost:8083
+              predicates:
+                - Path=/api/auth/**
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8083
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: gateway
