@@ -1,6 +1,6 @@
 package com.project.authservice.service;
 
-import com.project.authservice.model.entity.SecurityUser;
+import com.project.authservice.model.SecurityUser;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;

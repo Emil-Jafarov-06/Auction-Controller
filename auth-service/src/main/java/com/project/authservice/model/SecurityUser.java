@@ -1,5 +1,6 @@
-package com.project.authservice.model.entity;
+package com.project.authservice.model;
 
+import com.project.authservice.model.entity.User;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;

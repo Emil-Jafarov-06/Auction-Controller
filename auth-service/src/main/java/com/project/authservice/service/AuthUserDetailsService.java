@@ -1,6 +1,6 @@
 package com.project.authservice.service;
 
-import com.project.authservice.model.entity.SecurityUser;
+import com.project.authservice.model.SecurityUser;
 import lombok.RequiredArgsConstructor;
 import com.project.authservice.model.entity.User;
 import org.springframework.security.core.userdetails.UserDetails;

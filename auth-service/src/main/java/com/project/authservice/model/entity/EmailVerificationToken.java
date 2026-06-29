@@ -35,4 +35,14 @@ public class EmailVerificationToken {
     @Column(name = "expiry_date", nullable = false)
     private LocalDateTime expiryDate;
 
+    @PrePersist
+    public void prePersist() {
+        if (createDate == null) {
+            createDate = LocalDateTime.now();
+        }
+        if (expiryDate == null) {
+            expiryDate = LocalDateTime.now().plusMinutes(15);
+        }
+    }
+
 }
