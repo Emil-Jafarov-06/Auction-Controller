@@ -3,6 +3,7 @@ package com.project.authservice.exception.handler;
 import com.project.authservice.exception.BadRequestException;
 import com.project.authservice.exception.ConflictException;
 import com.project.authservice.exception.NotFoundException;
+import org.springframework.mail.MailException;
 import org.springframework.security.authentication.BadCredentialsException;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -143,6 +144,18 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(
                         HttpStatus.UNAUTHORIZED.value(),
                         "Authentication failed."
+                ));
+    }
+
+    @ExceptionHandler(MailException.class)
+    public ResponseEntity<ErrorResponse> handleMailException(MailException ex) {
+        ex.printStackTrace();
+
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(new ErrorResponse(
+                        HttpStatus.SERVICE_UNAVAILABLE.value(),
+                        "Could not send verification email. Please try again later."
                 ));
     }
 

@@ -38,6 +38,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
 
+    @Transactional
     public void registerUser(RegisterRequest registerRequest) {
         String fullName = registerRequest.getFullName().trim();
         String email = registerRequest.getEmail().trim().toLowerCase();
@@ -73,7 +74,7 @@ public class AuthService {
                 .isUsed(false).build();
 
         verificationTokenRepository.save(verificationToken);
-        emailService.sendVerificationEmail(savedUser.getEmail(), verificationToken);
+        emailService.sendVerificationEmail(savedUser.getEmail(), verificationToken.getToken());
     }
 
     public AuthResponse login(LoginRequest loginRequest) {

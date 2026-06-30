@@ -25,6 +25,18 @@ spring:
         default_schema: user_schema
     show-sql: true
 
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 jwt:
   secret: ${JWT_SECRET_KEY}
   access-token:
@@ -37,6 +49,9 @@ app:
   admin:
     bootstrap:
       enabled: ${BOOTSTRAP_ADMIN_ENABLED:false}
-      email: ${BOOTSTRAP_ADMIN_EMAIL:}
-      password: ${BOOTSTRAP_ADMIN_PASSWORD:}
-      pin: ${BOOTSTRAP_ADMIN_PIN:}
+      fullname: ${BOOTSTRAP_ADMIN_FULLNAME:System_Admin}
+      email: ${BOOTSTRAP_ADMIN_EMAIL}
+      password: ${BOOTSTRAP_ADMIN_PASSWORD}
+      pin: ${BOOTSTRAP_ADMIN_PIN}
+  mail:
+    verification-end-point: ${EMAIL_VERIFICATION_URL:http://localhost:8083/api/auth/verify-email}
