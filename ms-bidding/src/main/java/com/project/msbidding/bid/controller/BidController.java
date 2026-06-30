@@ -48,7 +48,7 @@ public class BidController {
             @Valid @RequestBody PlaceBidRequest bidRequest,
 
             @Parameter(description = "The id of the bidder", required = true)
-            @RequestHeader("Bidder-Id") @NotNull @Positive Long bidderId
+            @RequestHeader("X-User-Id") @NotNull @Positive Long bidderId
     ) {
         BidResponse bidResponse = bidService.placeBid(bidRequest, bidderId);
         return new ResponseEntity<>(bidResponse, HttpStatus.CREATED);

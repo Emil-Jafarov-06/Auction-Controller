@@ -28,11 +28,6 @@ spring:
               uri: http://localhost:8083
               predicates:
                 - Path=/api/auth/**
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8083
 
 authorization:
   rules:

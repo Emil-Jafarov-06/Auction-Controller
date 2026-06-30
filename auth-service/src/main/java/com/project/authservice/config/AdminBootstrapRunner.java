@@ -49,6 +49,13 @@ public class AdminBootstrapRunner implements CommandLineRunner {
         email = email.trim().toLowerCase();
         pin = pin.trim().toLowerCase();
 
+        if(userRepository.existsByEmailAndDeletedFalse(email)) {
+            throw new ConflictException("Email is in use!");
+        }
+        if(userRepository.existsByPinAndDeletedFalse(pin)){
+            throw new ConflictException("Pin is in use!");
+        }
+
         User admin = User.builder()
                 .fullName(fullName.trim())
                 .email(email)
@@ -61,12 +68,5 @@ public class AdminBootstrapRunner implements CommandLineRunner {
                 .build();
 
         userRepository.save(admin);
-
-        if(userRepository.existsByEmailAndDeletedFalse(email)) {
-            throw new ConflictException("Email is in use!");
-        }
-        if(userRepository.existsByPinAndDeletedFalse(pin)){
-            throw new ConflictException("Pin is in use!");
-        }
     }
 }

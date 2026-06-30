@@ -25,7 +25,6 @@ public interface BidRepository extends JpaRepository<Bid, Long> {
                    ) as rn
             from bidding_schema.bid b
             where b.auction_id in (:auctionIds)
-              and br.deleted = false
         ) ranked
         where ranked.rn = 1
         """, nativeQuery = true)
