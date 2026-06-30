@@ -24,8 +24,8 @@ public class Bid {
     @Column(name = "auction_id", nullable = false)
     private Long auctionId;
 
-    @Column(name = "bidder_id",  nullable = false)
-    private Long bidderId;
+    @Column(name = "user_id",  nullable = false)
+    private Long userId;
 
     @Column(nullable = false)
     private BigDecimal amount;

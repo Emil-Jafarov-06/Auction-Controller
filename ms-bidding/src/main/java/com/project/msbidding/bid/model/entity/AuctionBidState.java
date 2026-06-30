@@ -24,8 +24,8 @@ public class AuctionBidState {
     @Column(name = "highest_bid_amount", nullable = false)
     private BigDecimal highestBidAmount;
 
-    @Column(name = "last_bidder_id", nullable = false)
-    private Long lastBidderId;
+    @Column(name = "last_user_id", nullable = false)
+    private Long lastUserId;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;

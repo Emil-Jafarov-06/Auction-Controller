@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      author: emil
+      id: 003-create-auction-bid-state-table
+      changes:
+        - createTable:
+            tableName: auction_bid_state
+            schemaName: bidding_schema
+            columns:
+              - column:
+                  name: auction_id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_state
+
+              - column:
+                  name: highest_bid_amount
+                  type: NUMERIC(15, 2)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: last_user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false

@@ -16,7 +16,7 @@ public class BidResponse {
 
     private Long id;
     private Long auctionId;
-    private Long bidderId;
+    private Long userId;
     private BigDecimal amount;
     private LocalDateTime placedAt;
 

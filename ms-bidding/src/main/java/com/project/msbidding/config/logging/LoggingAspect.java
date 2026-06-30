@@ -12,13 +12,13 @@ public class LoggingAspect {
 
     ThreadLocal<Long> startTime = new ThreadLocal<>();
 
-    @Pointcut(value = "within(com.project.msbidding.bid.controller..* || com.project.msbidding.bidder.controller..*)")
+    @Pointcut(value = "within(com.project.msbidding.bid.controller..*)")
     public void controllerPc() {}
 
-    @Pointcut(value = "within(com.project.msbidding.bid.service..* || com.project.msbidding.bid.service..*)")
+    @Pointcut(value = "within(com.project.msbidding.bid.service..*)")
     public void servicePc() {}
 
-    @Pointcut(value = "within(com.project.msbidding.client..* || com.project.msbidding.client..*)")
+    @Pointcut(value = "within(com.project.msbidding.client..*)")
     public void clientPc(){}
 
     @Before(value = "controllerPc() || servicePc() || clientPc()")

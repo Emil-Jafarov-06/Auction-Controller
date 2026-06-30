@@ -6,8 +6,6 @@ import com.project.msbidding.bid.model.dto.PlaceBidRequest;
 import com.project.msbidding.bid.model.entity.Bid;
 import com.project.msbidding.bid.repository.AuctionBidStateRepository;
 import com.project.msbidding.bid.repository.BidRepository;
-import com.project.msbidding.bidder.model.entity.Bidder;
-import com.project.msbidding.bidder.repository.BidderRepository;
 import com.project.msbidding.client.AuctionClientForBidding;
 import com.project.msbidding.client.dto.AuctionInfoResponse;
 import com.project.msbidding.exception.BadRequestException;
@@ -34,9 +32,6 @@ class BidServiceTest {
     private AuctionClientForBidding auctionClient;
 
     @Mock
-    private BidderRepository bidderRepository;
-
-    @Mock
     private BidRepository bidRepository;
 
     @Mock
@@ -49,11 +44,10 @@ class BidServiceTest {
     void placeBid_whenBidIsValid_savesBidAndReturnsResponse() {
         PlaceBidRequest request = placeBidRequest(1L, BigDecimal.valueOf(150));
         AuctionInfoResponse auction = auctionInfo(1L, BigDecimal.valueOf(100), "ACTIVE");
-        Bidder bidder = bidder(5L);
+        Long userId = 5L;
         Bid savedBid = bid(10L, 1L, 5L, BigDecimal.valueOf(150));
 
         when(auctionClient.getAuctionInfoResponse(1L)).thenReturn(auction);
-        when(bidderRepository.findByIdAndDeletedFalse(5L)).thenReturn(bidder);
         when(auctionBidStateRepository.tryAcceptBid(1L, 5L, BigDecimal.valueOf(150))).thenReturn(1);
         when(bidRepository.save(any(Bid.class))).thenReturn(savedBid);
 
@@ -62,7 +56,7 @@ class BidServiceTest {
         assertNotNull(response);
         assertEquals(10L, response.getId());
         assertEquals(1L, response.getAuctionId());
-        assertEquals(5L, response.getBidderId());
+        assertEquals(5L, response.getUserId());
         assertEquals(BigDecimal.valueOf(150), response.getAmount());
 
         ArgumentCaptor<Bid> bidCaptor = ArgumentCaptor.forClass(Bid.class);
@@ -70,34 +64,19 @@ class BidServiceTest {
 
         Bid bidToSave = bidCaptor.getValue();
         assertEquals(1L, bidToSave.getAuctionId());
-        assertEquals(5L, bidToSave.getBidderId());
+        assertEquals(5L, bidToSave.getUserId());
         assertEquals(BigDecimal.valueOf(150), bidToSave.getAmount());
 
         verify(auctionBidStateRepository).tryAcceptBid(1L, 5L, BigDecimal.valueOf(150));
     }
 
     @Test
-    void placeBid_whenBidderDoesNotExist_throwsNotFoundException() {
-        PlaceBidRequest request = placeBidRequest(1L, BigDecimal.valueOf(150));
-        AuctionInfoResponse auction = auctionInfo(1L, BigDecimal.valueOf(100), "ACTIVE");
-
-        when(auctionClient.getAuctionInfoResponse(1L)).thenReturn(auction);
-        when(bidderRepository.findByIdAndDeletedFalse(5L)).thenReturn(null);
-
-        assertThrows(NotFoundException.class, () -> bidService.placeBid(request, 5L));
-
-        verify(auctionBidStateRepository, never()).tryAcceptBid(anyLong(), anyLong(), any());
-        verify(bidRepository, never()).save(any(Bid.class));
-    }
-
-    @Test
     void placeBid_whenAuctionIsNotActive_throwsBadRequestException() {
         PlaceBidRequest request = placeBidRequest(1L, BigDecimal.valueOf(150));
         AuctionInfoResponse auction = auctionInfo(1L, BigDecimal.valueOf(100), "DRAFT");
-        Bidder bidder = bidder(5L);
+        Long userId = 5L;
 
         when(auctionClient.getAuctionInfoResponse(1L)).thenReturn(auction);
-        when(bidderRepository.findByIdAndDeletedFalse(5L)).thenReturn(bidder);
 
         assertThrows(BadRequestException.class, () -> bidService.placeBid(request, 5L));
 
@@ -109,10 +88,9 @@ class BidServiceTest {
     void placeBid_whenAmountIsNotGreaterThanStartPrice_throwsBadRequestException() {
         PlaceBidRequest request = placeBidRequest(1L, BigDecimal.valueOf(100));
         AuctionInfoResponse auction = auctionInfo(1L, BigDecimal.valueOf(100), "ACTIVE");
-        Bidder bidder = bidder(5L);
+        Long userId = 5L;
 
         when(auctionClient.getAuctionInfoResponse(1L)).thenReturn(auction);
-        when(bidderRepository.findByIdAndDeletedFalse(5L)).thenReturn(bidder);
 
         assertThrows(BadRequestException.class, () -> bidService.placeBid(request, 5L));
 
@@ -124,10 +102,9 @@ class BidServiceTest {
     void placeBid_whenAuctionBidStateRejectsBid_throwsBadRequestException() {
         PlaceBidRequest request = placeBidRequest(1L, BigDecimal.valueOf(150));
         AuctionInfoResponse auction = auctionInfo(1L, BigDecimal.valueOf(100), "ACTIVE");
-        Bidder bidder = bidder(5L);
+        Long userId = 5L;
 
         when(auctionClient.getAuctionInfoResponse(1L)).thenReturn(auction);
-        when(bidderRepository.findByIdAndDeletedFalse(5L)).thenReturn(bidder);
         when(auctionBidStateRepository.tryAcceptBid(1L, 5L, BigDecimal.valueOf(150))).thenReturn(0);
 
         assertThrows(BadRequestException.class, () -> bidService.placeBid(request, 5L));
@@ -173,7 +150,7 @@ class BidServiceTest {
         assertNotNull(response);
         assertEquals(1L, response.getId());
         assertEquals(10L, response.getAuctionId());
-        assertEquals(5L, response.getBidderId());
+        assertEquals(5L, response.getUserId());
         assertEquals(BigDecimal.valueOf(300), response.getAmount());
     }
 
@@ -267,7 +244,7 @@ class BidServiceTest {
         assertNotNull(response);
         assertEquals(1L, response.getId());
         assertEquals(10L, response.getAuctionId());
-        assertEquals(5L, response.getBidderId());
+        assertEquals(5L, response.getUserId());
         assertEquals(BigDecimal.valueOf(300), response.getAmount());
         assertEquals(bid.getPlacedAt(), response.getPlacedAt());
     }
@@ -283,21 +260,11 @@ class BidServiceTest {
         return new AuctionInfoResponse(id, startPrice, status);
     }
 
-    private Bidder bidder(Long id) {
-        return Bidder.builder()
-                .id(id)
-                .fullName("Bidder " + id)
-                .email("bidder" + id + "@mail.com")
-                .pin("PIN" + id)
-                .deleted(false)
-                .build();
-    }
-
     private Bid bid(Long id, Long auctionId, Long bidderId, BigDecimal amount) {
         return Bid.builder()
                 .id(id)
                 .auctionId(auctionId)
-                .bidderId(bidderId)
+                .userId(bidderId)
                 .amount(amount)
                 .placedAt(LocalDateTime.now())
                 .build();

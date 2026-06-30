@@ -6,8 +6,6 @@ import com.project.msbidding.bid.model.dto.PlaceBidRequest;
 import com.project.msbidding.bid.model.entity.Bid;
 import com.project.msbidding.bid.repository.AuctionBidStateRepository;
 import com.project.msbidding.bid.repository.BidRepository;
-import com.project.msbidding.bidder.model.entity.Bidder;
-import com.project.msbidding.bidder.repository.BidderRepository;
 import com.project.msbidding.client.AuctionClientForBidding;
 import com.project.msbidding.client.dto.AuctionInfoResponse;
 import com.project.msbidding.exception.BadRequestException;
@@ -27,17 +25,14 @@ import java.util.stream.Collectors;
 public class BidService {
 
     private final AuctionClientForBidding auctionClient;
-    private final BidderRepository bidderRepository;
     private final BidRepository bidRepository;
     private final AuctionBidStateRepository auctionBidStateRepository;
 
     @Transactional
-    public BidResponse placeBid(PlaceBidRequest bidRequest, Long bidderId) {
+    public BidResponse placeBid(PlaceBidRequest bidRequest, Long userId) {
         Long auctionId = bidRequest.getAuctionId();
 
         AuctionInfoResponse auction = auctionClient.getAuctionInfoResponse(auctionId);
-        Bidder bidder = Optional.ofNullable(bidderRepository.findByIdAndDeletedFalse(bidderId))
-                .orElseThrow(() -> new NotFoundException("Bidder not found"));
 
         if(!auction.status().equals("ACTIVE")){
             throw new BadRequestException("Auction is not active.");
@@ -48,29 +43,29 @@ public class BidService {
         }
 
         int updates = auctionBidStateRepository
-                .tryAcceptBid(auctionId, bidderId, bidRequest.getAmount());
+                .tryAcceptBid(auctionId, userId, bidRequest.getAmount());
 
         if (updates <= 0){
-            log.warn("Bid rejected: auctionId : {}, bidderId : {}, amount : {}",
+            log.warn("Bid rejected: auctionId : {}, userId : {}, amount : {}",
                     auctionId,
-                    bidderId,
+                    userId,
                     bidRequest.getAmount());
 
-            throw new BadRequestException("Rejected! Amount must be greater than current highest bid and bidder cannot bid consecutively.");
+            throw new BadRequestException("Rejected! Amount must be greater than current highest bid and a user cannot bid consecutively.");
         }
 
         Bid bid = Bid.builder()
                 .auctionId(bidRequest.getAuctionId())
-                .bidderId(bidderId)
+                .userId(userId)
                 .amount(bidRequest.getAmount())
                 .build();
 
         Bid savedBid = bidRepository.save(bid);
 
-        log.info("Bid placed successfully: bidId = {}, auctionId = {}, bidderId = {}, amount = {}",
+        log.info("Bid placed successfully: bidId = {}, auctionId = {}, userId = {}, amount = {}",
                 savedBid.getId(),
                 savedBid.getAuctionId(),
-                savedBid.getBidderId(),
+                savedBid.getUserId(),
                 savedBid.getAmount());
 
         return toResponse(savedBid);
@@ -110,12 +105,12 @@ public class BidService {
             log.info("Bidding info resolved: auctionId = {}, hasBid = {}, winnerId = {}",
                     auctionId,
                     true,
-                    bid.getBidderId());
+                    bid.getUserId());
 
             return BidInfoResponse.builder()
                     .auctionId(auctionId)
                     .hasBid(true)
-                    .bidderId(bid.getBidderId()).build();
+                    .bidderId(bid.getUserId()).build();
         }
     }
 
@@ -149,7 +144,7 @@ public class BidService {
                         return BidInfoResponse.builder()
                                 .auctionId(auctionId)
                                 .hasBid(true)
-                                .bidderId(bid.getBidderId()).build();
+                                .bidderId(bid.getUserId()).build();
                     }
                 }).toList();
     }
@@ -157,7 +152,7 @@ public class BidService {
     public BidResponse toResponse(Bid bid) {
         return BidResponse.builder()
                 .id(bid.getId())
-                .bidderId(bid.getBidderId())
+                .userId(bid.getUserId())
                 .auctionId(bid.getAuctionId())
                 .amount(bid.getAmount())
                 .placedAt(bid.getPlacedAt()).build();

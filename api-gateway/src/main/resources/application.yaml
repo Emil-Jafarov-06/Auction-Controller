@@ -1,6 +1,10 @@
 server:
   port: 8080
 
+services:
+  auth:
+    base-url: http://localhost:8083
+
 spring:
   application:
     name: api-gateway
@@ -30,8 +34,42 @@ spring:
         jwt:
           issuer-uri: http://localhost:8083
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: gateway
+authorization:
+  rules:
+    - method: POST
+      path: /api/auctions
+      roles:
+        - ADMIN
+
+    - method: PATCH
+      path: /api/auctions/*/activate
+      roles:
+        - ADMIN
+
+    - method: PATCH
+      path: /api/auctions/*/cancel
+      roles:
+        - ADMIN
+
+    - method: PATCH
+      path: /api/auctions/*/finish
+      roles:
+        - ADMIN
+
+    - method: GET
+      path: api/auctions/**
+      roles:
+        - ADMIN
+        - BIDDER
+
+    - method: POST
+      path: /api/bids/**
+      roles:
+        - ADMIN
+        - BIDDER
+
+    - method: GET
+      path: /api/bids/**
+      roles:
+        - ADMIN
+        - BIDDER
