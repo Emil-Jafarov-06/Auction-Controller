@@ -4,16 +4,15 @@ import com.project.authservice.enums.Role;
 import com.project.authservice.exception.BadRequestException;
 import com.project.authservice.exception.ConflictException;
 import com.project.authservice.exception.NotFoundException;
-import com.project.authservice.model.dto.AuthResponse;
-import com.project.authservice.model.dto.LoginRequest;
-import com.project.authservice.model.dto.RefreshRequest;
-import com.project.authservice.model.dto.RegisterRequest;
+import com.project.authservice.model.dto.*;
 import com.project.authservice.model.entity.EmailVerificationToken;
 import com.project.authservice.model.entity.User;
 import com.project.authservice.repository.UserRepository;
 import com.project.authservice.repository.VerificationTokenRepository;
 import jakarta.transaction.Transactional;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -140,5 +139,44 @@ public class AuthService {
         verificationToken.setUsed(true);
         userRepository.save(user);
         verificationTokenRepository.save(verificationToken);
+    }
+
+    public ValidateTokenResponse validateToken(ValidateTokenRequest validateTokenRequest) {
+        String token = validateTokenRequest.getAccessToken();
+
+        try {
+            if (!jwtService.isAccessToken(token)) {
+                return new ValidateTokenResponse(false, null, null, null);
+            }
+
+            String email = jwtService.extractEmail(token);
+
+            User user = userRepository.findByEmailAndDeletedFalse(email)
+                    .orElse(null);
+
+            if (user == null) {
+                return new ValidateTokenResponse(false, null, null, null);
+            }
+
+            if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+                return new ValidateTokenResponse(false, null, null, null);
+            }
+
+            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+
+            if (!jwtService.isTokenValid(token, userDetails)) {
+                return new ValidateTokenResponse(false, null, null, null);
+            }
+
+            return new ValidateTokenResponse(
+                    true,
+                    user.getId(),
+                    user.getEmail(),
+                    user.getRole()
+            );
+
+        } catch (Exception ex) {
+            return new ValidateTokenResponse(false, null, null, null);
+        }
     }
 }

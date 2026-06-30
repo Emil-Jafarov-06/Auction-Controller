@@ -1,9 +1,6 @@
 package com.project.authservice.controller;
 
-import com.project.authservice.model.dto.AuthResponse;
-import com.project.authservice.model.dto.LoginRequest;
-import com.project.authservice.model.dto.RefreshRequest;
-import com.project.authservice.model.dto.RegisterRequest;
+import com.project.authservice.model.dto.*;
 import com.project.authservice.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -88,4 +86,5 @@ public class AuthController {
         authService.verifyUser(token);
         return new ResponseEntity<>("Email verified successfully.", HttpStatus.OK);
     }
+
 }
