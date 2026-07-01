@@ -10,9 +10,7 @@ import com.project.authservice.model.entity.User;
 import com.project.authservice.repository.UserRepository;
 import com.project.authservice.repository.VerificationTokenRepository;
 import jakarta.transaction.Transactional;
-import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -172,7 +170,7 @@ public class AuthService {
                     true,
                     user.getId(),
                     user.getEmail(),
-                    user.getRole()
+                    user.getRole().name()
             );
 
         } catch (Exception ex) {

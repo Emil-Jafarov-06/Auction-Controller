@@ -10,10 +10,15 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 public class SecurityConfig {
 
     @Bean
-    public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
-        return http.csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .authorizeExchange(exchange -> exchange.pathMatchers("/api/auth/**").permitAll()
-                        .anyExchange().authenticated())
+    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
+        return http
+                .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+                .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
+                .logout(ServerHttpSecurity.LogoutSpec::disable)
+                .authorizeExchange(exchange -> exchange
+                        .anyExchange().permitAll()
+                )
                 .build();
     }
 

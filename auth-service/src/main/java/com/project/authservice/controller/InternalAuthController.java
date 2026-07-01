@@ -3,12 +3,14 @@ package com.project.authservice.controller;
 import com.project.authservice.model.dto.ValidateTokenRequest;
 import com.project.authservice.model.dto.ValidateTokenResponse;
 import com.project.authservice.service.AuthService;
+import io.swagger.v3.oas.annotations.Hidden;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Hidden
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/internal/auth")

@@ -47,7 +47,7 @@ public class BidController {
     public ResponseEntity<BidResponse> placeBid(
             @Valid @RequestBody PlaceBidRequest bidRequest,
 
-            @Parameter(description = "The id of the bidder", required = true)
+            @Parameter(hidden = true)
             @RequestHeader("X-User-Id") @NotNull @Positive Long bidderId
     ) {
         BidResponse bidResponse = bidService.placeBid(bidRequest, bidderId);

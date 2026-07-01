@@ -29,6 +29,40 @@ spring:
               predicates:
                 - Path=/api/auth/**
 
+            - id: auth-docs
+              uri: http://localhost:8083
+              predicates:
+                - Path=/auth/v3/api-docs
+              filters:
+                - RewritePath=/auth/(?<segment>.*), /$\{segment}
+
+            - id: auction-docs
+              uri: http://localhost:8081
+              predicates:
+                - Path=/auction/v3/api-docs
+              filters:
+                - RewritePath=/auction/(?<segment>.*), /$\{segment}
+
+            - id: bidding-docs
+              uri: http://localhost:8082
+              predicates:
+                - Path=/bidding/v3/api-docs
+              filters:
+                - RewritePath=/bidding/(?<segment>.*), /$\{segment}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    urls:
+      - name: Auth Service
+        url: /auth/v3/api-docs
+
+      - name: Auction Service
+        url: /auction/v3/api-docs
+
+      - name: Bidding Service
+        url: /bidding/v3/api-docs
+
 authorization:
   rules:
     - method: POST
@@ -52,7 +86,13 @@ authorization:
         - ADMIN
 
     - method: GET
-      path: api/auctions/**
+      path: /api/auctions
+      roles:
+        - ADMIN
+        - BIDDER
+
+    - method: GET
+      path: /api/auctions/**
       roles:
         - ADMIN
         - BIDDER

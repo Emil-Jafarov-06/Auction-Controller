@@ -1,31 +1,35 @@
 package com.project.authservice.config;
 
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Contact;
-import io.swagger.v3.oas.models.info.Info;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class OpenApiConfig {
 
-    private static String SECURITY_SCHEME_NAME = "AUTH_SECURITY_SCHEME";
+    private static final String SECURITY_SCHEME_NAME = "bearerAuth";
 
     @Bean
-    public OpenAPI auctionControllerOpenAPI() {
+    public OpenAPI authServiceOpenAPI() {
         return new OpenAPI()
+                .servers(List.of(
+                        new Server()
+                                .url("/")
+                                .description("API Gateway")
+                ))
                 .info(new Info()
-                        .title("Auction Controller API")
-                        .description("API documentation for Auction, Bid, and Bidder operations.")
-                        .version("1.0.0")
-                        .contact(new Contact().email("EmilJafarov3841@gmail.com")
-                                .name("Emil Jafarov")))
-                .addSecurityItem(new SecurityRequirement()
-                        .addList(SECURITY_SCHEME_NAME)
+                        .title("Auth Service API")
+                        .description("Authentication endpoints through API Gateway")
+                        .version("v1")
                 )
+                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
                 .components(new Components()
                         .addSecuritySchemes(
                                 SECURITY_SCHEME_NAME,
@@ -37,5 +41,4 @@ public class OpenApiConfig {
                         )
                 );
     }
-
 }
