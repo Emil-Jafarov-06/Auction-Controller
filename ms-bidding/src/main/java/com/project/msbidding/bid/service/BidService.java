@@ -2,6 +2,7 @@ package com.project.msbidding.bid.service;
 
 import com.project.msbidding.bid.model.dto.BidInfoResponse;
 import com.project.msbidding.bid.model.dto.BidResponse;
+import com.project.msbidding.bid.model.dto.PageResponse;
 import com.project.msbidding.bid.model.dto.PlaceBidRequest;
 import com.project.msbidding.bid.model.entity.Bid;
 import com.project.msbidding.bid.repository.AuctionBidStateRepository;
@@ -11,9 +12,11 @@ import com.project.msbidding.client.dto.AuctionInfoResponse;
 import com.project.msbidding.exception.BadRequestException;
 import com.project.msbidding.exception.NotFoundException;
 import jakarta.transaction.Transactional;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -71,17 +74,34 @@ public class BidService {
         return toResponse(savedBid);
     }
 
-    public List<BidResponse> getAllBidsForAuction(@Positive Long id) {
-        List<Bid> bids = bidRepository.findBidsByAuctionIdOrderByPlacedAtDesc(id);
-        if(bids.isEmpty()){
-            return new ArrayList<>();
+    public PageResponse<BidResponse> getPaginatedBidsForAuction(Long id, int pageSize, int pageNumber) {
+        if (pageSize <= 0) {
+            throw new BadRequestException("Page size must be greater than 0!");
         }
-        return bids.stream()
+        if (pageNumber <= 0) {
+            throw new BadRequestException("Page number must be greater than 0!");
+        }
+
+        Page<Bid> bidPage = bidRepository.
+                findBidsByAuctionIdOrderByPlacedAtDesc(
+                        id,
+                        PageRequest.of(pageNumber-1, pageSize, Sort.by(Sort.Direction.DESC, "placedAt"))
+                );
+
+        List<BidResponse> bidResponses = bidPage.getContent()
+                .stream()
                 .map(this::toResponse)
                 .toList();
+
+        return new PageResponse<>(bidResponses,
+                pageNumber,
+                pageSize,
+                bidPage.getTotalElements(),
+                bidPage.getTotalPages()
+        );
     }
 
-    public BidResponse getHighestBidForAuction(@Positive Long auctionId) {
+    public BidResponse getHighestBidForAuction(Long auctionId) {
         Bid highestBid = bidRepository.findTopByAuctionIdOrderByPlacedAtDesc(auctionId);
         if(highestBid == null){
             throw new NotFoundException("No bids were placed for this auction!");

@@ -2,6 +2,7 @@ package com.project.msbidding.bid.service;
 
 import com.project.msbidding.bid.model.dto.BidInfoResponse;
 import com.project.msbidding.bid.model.dto.BidResponse;
+import com.project.msbidding.bid.model.dto.PageResponse;
 import com.project.msbidding.bid.model.dto.PlaceBidRequest;
 import com.project.msbidding.bid.model.entity.Bid;
 import com.project.msbidding.bid.repository.AuctionBidStateRepository;
@@ -16,6 +17,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -114,29 +119,124 @@ class BidServiceTest {
     }
 
     @Test
-    void getAllBidsForAuction_whenBidsExist_returnsResponses() {
+    void getPaginatedBidsForAuction_whenBidsExist_returnsPageResponse() {
         List<Bid> bids = List.of(
                 bid(1L, 10L, 5L, BigDecimal.valueOf(200)),
                 bid(2L, 10L, 6L, BigDecimal.valueOf(250))
         );
 
-        when(bidRepository.findBidsByAuctionIdOrderByPlacedAtDesc(10L)).thenReturn(bids);
+        Page<Bid> bidPage = new PageImpl<>(bids);
 
-        List<BidResponse> responses = bidService.getAllBidsForAuction(10L);
+        when(bidRepository.findBidsByAuctionIdOrderByPlacedAtDesc(eq(10L), any(Pageable.class)))
+                .thenReturn(bidPage);
 
-        assertEquals(2, responses.size());
-        assertEquals(10L, responses.get(0).getAuctionId());
-        assertEquals(10L, responses.get(1).getAuctionId());
+        PageResponse<BidResponse> response = bidService.getPaginatedBidsForAuction(10L, 2, 1);
+
+        assertNotNull(response);
+        assertEquals(2, response.content().size());
+
+        assertEquals(1L, response.content().get(0).getId());
+        assertEquals(10L, response.content().get(0).getAuctionId());
+        assertEquals(5L, response.content().get(0).getUserId());
+        assertEquals(BigDecimal.valueOf(200), response.content().get(0).getAmount());
+
+        assertEquals(2L, response.content().get(1).getId());
+        assertEquals(10L, response.content().get(1).getAuctionId());
+        assertEquals(6L, response.content().get(1).getUserId());
+        assertEquals(BigDecimal.valueOf(250), response.content().get(1).getAmount());
+
+        assertEquals(1, response.pageNumber());
+        assertEquals(2, response.pageSize());
+        assertEquals(2, response.totalCount());
+        assertEquals(1, response.totalPages());
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+
+        verify(bidRepository).findBidsByAuctionIdOrderByPlacedAtDesc(
+                eq(10L),
+                pageableCaptor.capture()
+        );
+
+        Pageable pageable = pageableCaptor.getValue();
+
+        assertEquals(0, pageable.getPageNumber());
+        assertEquals(2, pageable.getPageSize());
+        assertTrue(pageable.getSort().getOrderFor("placedAt").isDescending());
     }
 
     @Test
-    void getAllBidsForAuction_whenNoBids_returnsEmptyList() {
-        when(bidRepository.findBidsByAuctionIdOrderByPlacedAtDesc(10L)).thenReturn(List.of());
+    void getPaginatedBidsForAuction_whenNoBids_returnsEmptyPageResponse() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Bid> bidPage = new PageImpl<>(List.of(), pageable, 0);
 
-        List<BidResponse> responses = bidService.getAllBidsForAuction(10L);
+        when(bidRepository.findBidsByAuctionIdOrderByPlacedAtDesc(eq(10L), any(Pageable.class)))
+                .thenReturn(bidPage);
 
-        assertNotNull(responses);
-        assertTrue(responses.isEmpty());
+        PageResponse<BidResponse> response = bidService.getPaginatedBidsForAuction(10L, 10, 1);
+
+        assertNotNull(response);
+        assertTrue(response.content().isEmpty());
+
+        assertEquals(1, response.pageNumber());
+        assertEquals(10, response.pageSize());
+        assertEquals(0, response.totalCount());
+        assertEquals(0, response.totalPages());
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+
+        verify(bidRepository).findBidsByAuctionIdOrderByPlacedAtDesc(
+                eq(10L),
+                pageableCaptor.capture()
+        );
+
+        Pageable capturedPageable = pageableCaptor.getValue();
+
+        assertEquals(0, capturedPageable.getPageNumber());
+        assertEquals(10, capturedPageable.getPageSize());
+    }
+
+    @Test
+    void getPaginatedBidsForAuction_whenPageSizeIsZero_throwsBadRequestException() {
+        assertThrows(
+                BadRequestException.class,
+                () -> bidService.getPaginatedBidsForAuction(10L, 0, 1)
+        );
+
+        verify(bidRepository, never())
+                .findBidsByAuctionIdOrderByPlacedAtDesc(anyLong(), any(Pageable.class));
+    }
+
+    @Test
+    void getPaginatedBidsForAuction_whenPageSizeIsNegative_throwsBadRequestException() {
+        assertThrows(
+                BadRequestException.class,
+                () -> bidService.getPaginatedBidsForAuction(10L, -5, 1)
+        );
+
+        verify(bidRepository, never())
+                .findBidsByAuctionIdOrderByPlacedAtDesc(anyLong(), any(Pageable.class));
+    }
+
+    @Test
+    void getPaginatedBidsForAuction_whenPageNumberIsZero_throwsBadRequestException() {
+        assertThrows(
+                BadRequestException.class,
+                () -> bidService.getPaginatedBidsForAuction(10L, 10, 0)
+        );
+
+        verify(bidRepository, never())
+                .findBidsByAuctionIdOrderByPlacedAtDesc(anyLong(), any(Pageable.class));
+    }
+
+    @Test
+    void getPaginatedBidsForAuction_whenPageNumberIsNegative_throwsBadRequestException() {
+        assertThrows(
+                BadRequestException.class,
+                () -> bidService.getPaginatedBidsForAuction(10L, 10, -1)
+        );
+
+        verify(bidRepository, never())
+                .findBidsByAuctionIdOrderByPlacedAtDesc(anyLong(), any(Pageable.class));
     }
 
     @Test

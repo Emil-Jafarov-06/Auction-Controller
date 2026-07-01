@@ -1,6 +1,7 @@
 package com.project.msbidding.bid.controller;
 
 import com.project.msbidding.bid.model.dto.BidResponse;
+import com.project.msbidding.bid.model.dto.PageResponse;
 import com.project.msbidding.bid.model.dto.PlaceBidRequest;
 import com.project.msbidding.bid.service.BidService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,12 +15,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.converters.PageOpenAPIConverter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Validated
 @RestController
@@ -29,6 +29,7 @@ import java.util.List;
 public class BidController {
 
     private final BidService bidService;
+    private final PageOpenAPIConverter pageOpenAPIConverter;
 
     @Operation(
             summary = "Place bid",
@@ -56,18 +57,20 @@ public class BidController {
 
     @Operation(
             summary = "Get bids for auction",
-            description = "Returns all bids placed for a specific auction."
+            description = "Returns paginated bids placed for a specific auction."
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Bids returned successfully"),
             @ApiResponse(responseCode = "404", description = "Auction not found", content = @Content)
     })
     @GetMapping("/auction/{auctionId}")
-    public ResponseEntity<List<BidResponse>> getBidsForAuction(
+    public ResponseEntity<PageResponse<BidResponse>> getBidsForAuction(
             @Parameter(description = "Auction ID", example = "1")
-            @PathVariable @Positive Long auctionId
+            @PathVariable @Positive Long auctionId,
+            @RequestParam(required = false, defaultValue = "10") int pageSize,
+            @RequestParam(required = false, defaultValue = "1") int pageNumber
     ) {
-        List<BidResponse> bidResponses = bidService.getAllBidsForAuction(auctionId);
+        PageResponse<BidResponse> bidResponses = bidService.getPaginatedBidsForAuction(auctionId, pageSize, pageNumber);
         return new ResponseEntity<>(bidResponses, HttpStatus.OK);
     }
 
