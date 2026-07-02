@@ -1,4 +1,4 @@
-package com.project.apigateway.config;
+package com.project.authservice.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

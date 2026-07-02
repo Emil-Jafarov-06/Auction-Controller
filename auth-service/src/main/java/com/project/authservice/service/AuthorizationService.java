@@ -1,7 +1,6 @@
-package com.project.apigateway.service;
+package com.project.authservice.service;
 
-import com.project.apigateway.config.AuthorizationProperties;
-import org.springframework.http.HttpMethod;
+import com.project.authservice.config.AuthorizationProperties;
 import org.springframework.stereotype.Service;
 import org.springframework.util.AntPathMatcher;
 
@@ -15,11 +14,11 @@ public class AuthorizationService {
         this.authorizationProperties = authorizationProperties;
     }
 
-    public boolean isAllowed(HttpMethod method, String path, String role) {
+    public boolean isAllowed(String method, String path, String role) {
         return authorizationProperties.getRules()
                 .stream()
                 .anyMatch(rule ->
-                        rule.getMethod().equalsIgnoreCase(method.name())
+                        rule.getMethod().equalsIgnoreCase(method)
                                 && pathMatcher.match(rule.getPath(), path)
                                 && rule.getRoles().contains(role)
                 );

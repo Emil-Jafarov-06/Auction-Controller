@@ -1,9 +1,7 @@
 package com.project.apigateway.filter;
 
-import com.project.apigateway.model.ValidateTokenRequest;
-import com.project.apigateway.model.ValidateTokenResponse;
-import com.project.apigateway.service.AuthorizationService;
-import lombok.RequiredArgsConstructor;
+import com.project.apigateway.model.ValidateRequest;
+import com.project.apigateway.model.ValidateResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -20,21 +18,16 @@ import reactor.core.publisher.Mono;
 public class GatewayAuthFilter implements GlobalFilter, Ordered {
 
     private final WebClient.Builder webClientBuilder;
-    private final AuthorizationService authorizationService;
-
     @Value("${services.auth.base-url}")
     private String authServiceBaseUrl;
 
-    public GatewayAuthFilter(WebClient.Builder webClientBuilder,
-                             AuthorizationService authorizationService) {
+    public GatewayAuthFilter(WebClient.Builder webClientBuilder) {
         this.webClientBuilder = webClientBuilder;
-        this.authorizationService = authorizationService;
     }
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
-
         String path = request.getURI().getPath();
 
         if (isPublicPath(path)) {
@@ -53,22 +46,16 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
         return webClientBuilder.build()
                 .post()
                 .uri(authServiceBaseUrl + "/internal/auth/verify-token")
-                .bodyValue(new ValidateTokenRequest(accessToken))
+                .bodyValue(new ValidateRequest(accessToken, request.getMethod().name(), path))
                 .retrieve()
-                .bodyToMono(ValidateTokenResponse.class)
+                .bodyToMono(ValidateResponse.class)
                 .flatMap(authResponse -> {
-                    if (authResponse.valid() == null || !authResponse.valid()) {
+                    if (!authResponse.authenticated()) {
                         exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
                         return exchange.getResponse().setComplete();
                     }
 
-                    boolean allowed = authorizationService.isAllowed(
-                            request.getMethod(),
-                            path,
-                            authResponse.role()
-                    );
-
-                    if (!allowed) {
+                    if (!authResponse.authorized()) {
                         exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);
                         return exchange.getResponse().setComplete();
                     }
@@ -103,6 +90,7 @@ public class GatewayAuthFilter implements GlobalFilter, Ordered {
                 || path.startsWith("/api/auth/verify-email")
 
                 || path.startsWith("/swagger-ui")
+                || path.startsWith("/swagger-ui.html")
                 || path.startsWith("/webjars")
                 || path.startsWith("/v3/api-docs")
                 || path.startsWith("/auth/v3/api-docs")

@@ -34,6 +34,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
+    private final AuthorizationService authorizationService;
 
     @Transactional
     public void registerUser(RegisterRequest registerRequest) {
@@ -139,12 +140,14 @@ public class AuthService {
         verificationTokenRepository.save(verificationToken);
     }
 
-    public ValidateTokenResponse validateToken(ValidateTokenRequest validateTokenRequest) {
-        String token = validateTokenRequest.getAccessToken();
+    public ValidateResponse validateToken(ValidateRequest validateRequest) {
+        String token = validateRequest.getAccessToken();
 
         try {
             if (!jwtService.isAccessToken(token)) {
-                return new ValidateTokenResponse(false, null, null, null);
+                ValidateResponse.builder()
+                        .authenticated(false)
+                        .authorized(false).build();
             }
 
             String email = jwtService.extractEmail(token);
@@ -153,28 +156,42 @@ public class AuthService {
                     .orElse(null);
 
             if (user == null) {
-                return new ValidateTokenResponse(false, null, null, null);
+                ValidateResponse.builder()
+                        .authenticated(false)
+                        .authorized(false).build();
             }
 
             if (!Boolean.TRUE.equals(user.getEmailVerified())) {
-                return new ValidateTokenResponse(false, null, null, null);
+                ValidateResponse.builder()
+                        .authenticated(false)
+                        .authorized(false).build();
             }
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
             if (!jwtService.isTokenValid(token, userDetails)) {
-                return new ValidateTokenResponse(false, null, null, null);
+                ValidateResponse.builder()
+                        .authenticated(false)
+                        .authorized(false).build();
             }
 
-            return new ValidateTokenResponse(
-                    true,
-                    user.getId(),
-                    user.getEmail(),
-                    user.getRole().name()
-            );
+            Boolean isAllowed = authorizationService.isAllowed(
+                            validateRequest.getMethod(),
+                            validateRequest.getPath(),
+                            user.getRole().name()
+                    );
+
+            return ValidateResponse.builder()
+                    .authenticated(true)
+                    .authorized(isAllowed)
+                    .email(user.getEmail())
+                    .id(user.getId())
+                    .role(user.getRole().name()).build();
 
         } catch (Exception ex) {
-            return new ValidateTokenResponse(false, null, null, null);
+            return ValidateResponse.builder()
+                    .authenticated(false)
+                    .authorized(false).build();
         }
     }
 }

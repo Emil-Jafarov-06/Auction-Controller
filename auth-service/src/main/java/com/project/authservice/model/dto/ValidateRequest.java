@@ -10,9 +10,15 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ValidateTokenRequest {
+public class ValidateRequest {
 
     @NotBlank
     private String accessToken;
+
+    @NotBlank
+    private String method;
+
+    @NotBlank
+    private String path;
 
 }

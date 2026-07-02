@@ -55,3 +55,50 @@ app:
       pin: ${BOOTSTRAP_ADMIN_PIN}
   mail:
     verification-end-point: ${EMAIL_VERIFICATION_URL:http://localhost:8083/api/auth/verify-email}
+
+
+authorization:
+  rules:
+    - method: POST
+      path: /api/auctions
+      roles:
+        - ADMIN
+
+    - method: PATCH
+      path: /api/auctions/*/activate
+      roles:
+        - ADMIN
+
+    - method: PATCH
+      path: /api/auctions/*/cancel
+      roles:
+        - ADMIN
+
+    - method: PATCH
+      path: /api/auctions/*/finish
+      roles:
+        - ADMIN
+
+    - method: GET
+      path: /api/auctions
+      roles:
+        - ADMIN
+        - BIDDER
+
+    - method: GET
+      path: /api/auctions/**
+      roles:
+        - ADMIN
+        - BIDDER
+
+    - method: POST
+      path: /api/bids/**
+      roles:
+        - ADMIN
+        - BIDDER
+
+    - method: GET
+      path: /api/bids/**
+      roles:
+        - ADMIN
+        - BIDDER
